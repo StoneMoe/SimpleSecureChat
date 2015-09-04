@@ -31,10 +31,14 @@ namespace SSC_Client
 
         Thread recvThread;
 
-
         IntPtr wpfHwnd;
 
-
+        public enum ConnectStatus
+        {
+            Connect = 1,
+            Disconnect = 2,
+            Working = 3
+        }
 
 
         #region Events
@@ -65,14 +69,14 @@ namespace SSC_Client
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            //flash init
+            //flash notice init
             WindowInteropHelper wndHelper = new WindowInteropHelper(this);
             wpfHwnd = wndHelper.Handle;
 
             //UI reset
             messageArea.Document.Blocks.Clear();
             makeSend(false);
-            makeConnect(1);
+            makeConnect(ConnectStatus.Connect);
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
@@ -186,15 +190,16 @@ namespace SSC_Client
                 }));
         }
 
-        public void makeConnect(int flag)
+        public void makeConnect(ConnectStatus flag)
         {
             this.Dispatcher.Invoke(new Action(() =>
                 {
                     switch (flag)
                     {
-                        case 1:
+                        case ConnectStatus.Connect:
                             ConnectButton.Content = "Connect";
                             ConnectButton.IsEnabled = true;
+
                             IPBox.IsEnabled = true;
                             PortBox.IsEnabled = true;
                             NickBox.IsEnabled = true;
@@ -202,11 +207,12 @@ namespace SSC_Client
 
                             messageArea.Width = 460;
                             sendBox.Width = 460;
-                            ConnectButton.Margin = new Thickness(479,334,0,0);
+                            ConnectButton.Margin = new Thickness(479, 334, 0, 0);
                             break;
-                        case 2:
+                        case ConnectStatus.Disconnect:
                             ConnectButton.Content = "Disconnect";
                             ConnectButton.IsEnabled = true;
+
                             IPBox.IsEnabled = false;
                             PortBox.IsEnabled = false;
                             NickBox.IsEnabled = false;
@@ -216,9 +222,10 @@ namespace SSC_Client
                             sendBox.Width = 660;
                             ConnectButton.Margin = new Thickness(479, 435, 0, 0);
                             break;
-                        case 3:
+                        case ConnectStatus.Working:
                             ConnectButton.Content = "Wait...";
                             ConnectButton.IsEnabled = false;
+
                             IPBox.IsEnabled = false;
                             PortBox.IsEnabled = false;
                             NickBox.IsEnabled = false;
@@ -228,18 +235,18 @@ namespace SSC_Client
                             break;
                     }
                 }));
-
         }
 
         public void AddMessage(string msg, bool self = false)
         {
             this.Dispatcher.Invoke(new Action(() =>
             {
-                
                 string _name = msg.Substring(0, msg.IndexOf(':', 0, msg.Length));
                 string _msg = msg.Substring(msg.IndexOf(':', 0, msg.Length) + 1);
+
                 Run fl = new Run(string.Format("{0} {1}", _name, DateTime.Now.ToString("hh:mm:ss")));
                 Run r = new Run(_msg);
+
                 if (self)
                 {
                     Paragraph paragraph = new Paragraph();
@@ -257,6 +264,7 @@ namespace SSC_Client
                     }
                     return;
                 }
+
                 Paragraph paragrapha = new Paragraph();
                 paragrapha.Margin = new Thickness(3, 6, 0, 3);
                 paragrapha.Foreground = new SolidColorBrush(Color.FromRgb(0, 102, 225));
@@ -287,7 +295,7 @@ namespace SSC_Client
                 flashTaskBar(wpfHwnd, falshType.FLASHW_TIMERNOFG);
             }));
         }
-        
+
         public struct FLASHWINFO
         {
             public UInt32 cbSize;
@@ -300,7 +308,7 @@ namespace SSC_Client
         [DllImport("user32.dll")]
         public static extern bool FlashWindowEx(ref FLASHWINFO pwfi);
 
-        public enum falshType:uint
+        public enum falshType : uint
         {
             FLASHW_STOP = 0,    //停止闪烁
             FALSHW_CAPTION = 1,  //只闪烁标题
@@ -331,7 +339,7 @@ namespace SSC_Client
         {
             if ((string)ConnectButton.Content == "Disconnect")
             {
-                makeConnect(3);
+                makeConnect(ConnectStatus.Working);
 
                 Thread t = new Thread(() =>
                 {
@@ -344,10 +352,10 @@ namespace SSC_Client
                         if (!isDisconnecting)
                         {
                             addLog("Disconnected");
-                            makeConnect(1);
+                            makeConnect(ConnectStatus.Connect);
                             break;
                         }
-                        
+
                     }
 
                     //free key
@@ -362,7 +370,7 @@ namespace SSC_Client
             IPAddress ip;
             int port;
 
-            if (!IPAddress.TryParse(IPBox.Text,out ip))
+            if (!IPAddress.TryParse(IPBox.Text, out ip))
             {
                 try
                 {
@@ -410,11 +418,11 @@ namespace SSC_Client
                 nickname = NickBox.Text.Trim();
             }
             //All Green and start connect
-            makeConnect(3);
+            makeConnect(ConnectStatus.Working);
 
             isDisconnecting = false;
 
-            ConnectHandler(ip,port);
+            ConnectHandler(ip, port);
         }
 
         public void ConnectHandler(IPAddress ip, int port)
@@ -426,6 +434,7 @@ namespace SSC_Client
 
                 s = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 s.Connect(new IPEndPoint(ip, Convert.ToInt32(PortBox.Text)));
+
                 addLog("Connected");
                 presetThread = new Thread(() =>
                 {
@@ -439,14 +448,14 @@ namespace SSC_Client
                 s.Dispose();
                 key = null;
                 addLog("Can't reach Host");
-                makeConnect(1);
+                makeConnect(ConnectStatus.Connect);
             }
             catch (OutOfMemoryException)
             {
                 s.Dispose();
                 key = null;
                 addLog("Out of Memory");
-                makeConnect(1);
+                makeConnect(ConnectStatus.Connect);
             }
             catch (Exception ex)
             {
@@ -454,7 +463,7 @@ namespace SSC_Client
                 key = null;
                 addLog("Unknown Exception Occured");
                 MessageBox.Show(ex.Message);
-                makeConnect(1);
+                makeConnect(ConnectStatus.Connect);
             }
         }
 
@@ -464,7 +473,8 @@ namespace SSC_Client
             {
                 addLog("Setting Nickname to \"" + nickname + "\"...");
                 byte[] buffer = new byte[102400];
-                Thread temp = new Thread(() => {
+                Thread temp = new Thread(() =>
+                {
                     Thread.Sleep(500);
                     s.Send(parseMsg("NICK", nickname));
                 });
@@ -481,7 +491,7 @@ namespace SSC_Client
                     {
                         addLog("Nickname set succeed");
                         s.ReceiveTimeout = 0;
-                        makeConnect(2);
+                        makeConnect(ConnectStatus.Disconnect);
                         makeSend(true);
 
                         recvThread = new Thread(() =>
@@ -496,7 +506,9 @@ namespace SSC_Client
                     {
                         key = null;
                         addLog(data[1]);
-                        makeConnect(1);
+                        s.Dispose();
+                        addLog("Disconnected");
+                        makeConnect(ConnectStatus.Connect);
                         return;
                     }
                 }
@@ -504,7 +516,9 @@ namespace SSC_Client
                 {
                     key = null;
                     addLog("Failed,Maybe Connection issue or AES Key mismatch (Err Code 1)");
-                    makeConnect(1);
+                    s.Dispose();
+                    addLog("Disconnected");
+                    makeConnect(ConnectStatus.Connect);
                     return;
                 }
             }
@@ -512,15 +526,19 @@ namespace SSC_Client
             {
                 key = null;
                 addLog("Failed,Maybe Connection issue or AES Key mismatch (Err Code 2)");
-                makeConnect(1);
+                s.Dispose();
+                addLog("Disconnected");
+                makeConnect(ConnectStatus.Connect);
                 return;
             }
             catch (Exception ex)
             {
                 key = null;
                 addLog("Failed,Maybe SSC protocol version mismatch");
+                s.Dispose();
+                addLog("Disconnected");
                 MessageBox.Show(ex.Message);
-                makeConnect(1);
+                makeConnect(ConnectStatus.Connect);
             }
         }
 
@@ -561,7 +579,7 @@ namespace SSC_Client
                         if (!isDisconnecting)
                         {
                             addLog("Lost connection with Host");
-                            makeConnect(1);
+                            makeConnect(ConnectStatus.Connect);
                         }
                         else
                         {
@@ -577,7 +595,7 @@ namespace SSC_Client
                 if (!isDisconnecting)
                 {
                     addLog("Lost connection with Host");
-                    makeConnect(1);
+                    makeConnect(ConnectStatus.Connect);
                 }
                 else
                 {
@@ -592,7 +610,7 @@ namespace SSC_Client
                 {
                     addLog("Unknown Exception Occured");
                     MessageBox.Show(ex.ToString());
-                    makeConnect(1);
+                    makeConnect(ConnectStatus.Connect);
                 }
                 else
                 {
@@ -614,7 +632,7 @@ namespace SSC_Client
                 }
                 s.Send(parseMsg("MSG", sendBox.Text));
 
-                AddMessage(string.Format("{0}:{1}", nickname, sendBox.Text),true);
+                AddMessage(string.Format("{0}:{1}", nickname, sendBox.Text), true);
                 sendBox.Text = "";
             }
             catch (Exception)
@@ -622,7 +640,7 @@ namespace SSC_Client
                 if (!isDisconnecting)
                 {
                     addLog("Lost connection with Host,Your last message may lose");
-                    makeConnect(1);
+                    makeConnect(ConnectStatus.Connect);
                 }
                 else
                 {
@@ -633,11 +651,11 @@ namespace SSC_Client
             }
         }
 
-        
+
 
         #endregion
 
-        
+
 
     }
 }

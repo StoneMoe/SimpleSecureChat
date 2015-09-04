@@ -441,6 +441,9 @@ namespace SSC_Server
 
             string tmpip = client.RemoteEndPoint.ToString();
 
+            //network
+            bool alreadyDisposed = false;
+
             //Handler
             try
             {
@@ -469,24 +472,26 @@ namespace SSC_Server
                             {
                                 client.Send(parseMsg("INFO", "NICKNAME_EXIST"));
                                 SYSLog(string.Format("{0} - Set nickname - {1} - {2}", client.RemoteEndPoint.ToString(), data[1], "Failed(NICKNAME_EXIST)"));
+                                alreadyDisposed = true;
+                                client.Dispose();
                                 continue;
                             }
 
                             //is username allowed?
-                            if (data[1][0] == ('&') || data[1][0] == ('@') || data[1].Contains(" ") || data[1].Contains(":"))  //@ is server msg prefix , & is admin user msg prefix
+                            if (data[1][0] == ('&') || data[1][0] == ('@') || data[1].Contains(" ") || data[1].Contains(":") || data[1].Trim() == string.Empty)  //@ is server msg prefix , & is admin user msg prefix
                             {
                                 client.Send(parseMsg("INFO", "NICKNAME_NOT_ALLOW"));
                                 SYSLog(string.Format("{0} - Set nickname - {1} - {2}", client.RemoteEndPoint.ToString(), data[1], "Failed(NICKNAME_NOT_ALLOW)"));
+                                alreadyDisposed = true;
+                                client.Dispose();
                                 continue;
                             }
 
                             //All green! Let's set nickname now
 
                             RegClient(data[1], client); //register socket and nickname to Dictionary.
-
-                            nickname = data[1]; //save nickname to current session
+                            nickname = data[1].Replace("\\", "\\\\"); //save nickname to current session
                             NicknameSeted = true; // turn nickname set process off
-
                             client.ReceiveTimeout = 0; //set infinite timeout
 
                             client.Send(parseMsg("INFO", "OK"));
@@ -574,9 +579,15 @@ namespace SSC_Server
                         if (NicknameSeted)
                         {
                             UnRegClient(nickname);
+
                         }
 
-                        client.Dispose();
+                        if (!alreadyDisposed)
+                        {
+                            alreadyDisposed = true;
+                            client.Dispose();
+                        }
+
 
                         //leaved msg
                         if (broadcastBox.Checked && NicknameSeted)
@@ -597,7 +608,11 @@ namespace SSC_Server
                     UnRegClient(nickname);
                 }
 
-                client.Dispose();
+                if (!alreadyDisposed)
+                {
+                    alreadyDisposed = true;
+                    client.Dispose();
+                }
 
                 //leaved msg
                 if (broadcastBox.Checked && NicknameSeted)
@@ -617,7 +632,33 @@ namespace SSC_Server
                     UnRegClient(nickname);
                 }
 
-                client.Dispose();
+                if (!alreadyDisposed)
+                {
+                    alreadyDisposed = true;
+                    client.Dispose();
+                }
+
+                //leaved msg
+                if (broadcastBox.Checked && NicknameSeted)
+                {
+                    Broadcast(parseMsg("MSG", string.Format("@{0}:{1}", ServerNameBox.Text, "\"" + nickname + "\" Leaved.")), true);
+                }
+                SYSLog(string.Format("{0} ({1}) - Disconnected", tmpip, nickname));
+                tmpip = null;
+            }
+            catch (ObjectDisposedException)
+            {
+                //may be lost connection 4
+                if (NicknameSeted)
+                {
+                    UnRegClient(nickname);
+                }
+
+                if (!alreadyDisposed)
+                {
+                    alreadyDisposed = true;
+                    client.Dispose();
+                }
 
                 //leaved msg
                 if (broadcastBox.Checked && NicknameSeted)
@@ -629,12 +670,17 @@ namespace SSC_Server
             }
             catch (Exception ex)
             {
-                //may be lost connection 4
+                //may be lost connection 5
                 if (NicknameSeted)
                 {
                     UnRegClient(nickname);
                 }
-                client.Dispose();
+
+                if (!alreadyDisposed)
+                {
+                    alreadyDisposed = true;
+                    client.Dispose();
+                }
 
                 //leaved msg
                 if (broadcastBox.Checked && NicknameSeted)
@@ -643,7 +689,7 @@ namespace SSC_Server
                 }
                 ERRLog(string.Format("{0} - Unknown - {1} - {2}", tmpip, "Unknown", "Failed(Unknown Exception)"));
                 SYSLog(string.Format("{0} ({1}) - Disconnected", tmpip, nickname));
-                MessageBox.Show(ex.Message);
+                Console.WriteLine(ex.ToString());
                 tmpip = null;
             }
         }
