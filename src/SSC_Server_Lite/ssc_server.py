@@ -2,8 +2,8 @@
 # -*- coding:utf8 -*-
 
 import socket
-import threading
-import base64
+from base64 import b64encode, b64decode
+from threading import Thread
 from time import time, localtime, strftime
 from Crypto.Cipher import AES  # You need "easy_install pyCrypto"
 
@@ -81,11 +81,11 @@ def msgLog(msg):
 
 
 def Encrypt(data):
-    return base64.b64encode(Cryptor.encrypt(pad(data)))
+    return b64encode(Cryptor.encrypt(pad(data)))
 
 
 def Decrypt(data):
-    return unpad(Cryptor.decrypt(base64.b64decode(data)))
+    return unpad(Cryptor.decrypt(b64decode(data)))
 
 
 def parseData(rawdata):
@@ -150,7 +150,7 @@ def AcceptHandler():
 
             sysLog("%s - Connected" % str(addr))
 
-            t = threading.Thread(target=ClientHandler, args=(clientSocket, addr))
+            t = Thread(target=ClientHandler, args=(clientSocket, addr))
             t.start()
     except KeyboardInterrupt:
         print "\r\n"
