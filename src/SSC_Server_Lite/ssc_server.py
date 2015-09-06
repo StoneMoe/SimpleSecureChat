@@ -34,7 +34,7 @@ clientDic = {}
 
 BS = AES.block_size
 pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
-unpad = lambda s : s[0:-ord(s[-1])]
+unpad = lambda s: s[0:-ord(s[-1])]
 
 def main():
     print """
@@ -72,6 +72,7 @@ def errLog(msg):
 def msgLog(msg):
     print "[%s] [MSG]: %s" % (time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time())), msg)
     pass
+
 
 def Encrypt(data):
     return base64.b64encode(Cryptor.encrypt(pad(data)))
@@ -227,4 +228,5 @@ def ClientHandler(client, addr):
         sysLog("%s (%s) - Disconnected")
 
 
-main()
+if __name__ == '__main__':
+    main()
