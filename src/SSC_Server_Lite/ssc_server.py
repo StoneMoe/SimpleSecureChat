@@ -228,4 +228,5 @@ def ClientHandler(client, addr):
         sysLog("%s (%s) - Disconnected")
 
 
-main()
+if __name__ == '__main__':
+    main()
