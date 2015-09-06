@@ -1,0 +1,6 @@
+
+
+    [paste.server_runner]
+    paster = socketio.server:serve_paste
+
+    
