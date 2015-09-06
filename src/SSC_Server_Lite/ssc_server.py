@@ -1,11 +1,14 @@
 #!/usr/bin/python
 # -*- coding:utf8 -*-
 
-import socket, threading, time, base64
+import socket
+from base64 import b64encode, b64decode
+from threading import Thread
+from time import time, localtime, strftime
 from Crypto.Cipher import AES  # You need "easy_install pyCrypto"
 
 
-#################Options BEGIN##################
+# ################Options BEGIN##################
 
 # Settings
 ip = "0.0.0.0"  # Listen IP
@@ -28,13 +31,20 @@ mode = AES.MODE_ECB
 
 Cryptor = AES.new(key, mode)
 
-##################Options END###################
+# #################Options END###################
 
 clientDic = {}
 
 BS = AES.block_size
-pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
-unpad = lambda s: s[0:-ord(s[-1])]
+
+
+def pad(s):
+    return lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
+
+
+def unpad(s):
+    return lambda s: s[0:-ord(s[-1])]
+
 
 def main():
     print """
@@ -51,7 +61,6 @@ Python Edition
 
     MainSocketInit()
     AcceptHandler()
-    pass
 
 
 def Shutdown():
@@ -60,26 +69,23 @@ def Shutdown():
 
 
 def sysLog(msg):
-    print "[%s] [SYS]: %s" % (time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time())), msg)
-    pass
+    print "[%s] [SYS]: %s" % (strftime('%Y-%m-%d %H:%M:%S %Z', localtime(time())), msg)
 
 
 def errLog(msg):
-    print "[%s] [ERR]: %s" % (time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time())), msg)
-    pass
+    print "[%s] [ERR]: %s" % (strftime('%Y-%m-%d %H:%M:%S %Z', localtime(time())), msg)
 
 
 def msgLog(msg):
-    print "[%s] [MSG]: %s" % (time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(time.time())), msg)
-    pass
+    print "[%s] [MSG]: %s" % (strftime('%Y-%m-%d %H:%M:%S %Z', localtime(time())), msg)
 
 
 def Encrypt(data):
-    return base64.b64encode(Cryptor.encrypt(pad(data)))
+    return b64encode(Cryptor.encrypt(pad(data)))
 
 
 def Decrypt(data):
-    return unpad(Cryptor.decrypt(base64.b64decode(data)))
+    return unpad(Cryptor.decrypt(b64decode(data)))
 
 
 def parseData(rawdata):
@@ -106,7 +112,7 @@ def unregClient(name):
 
 
 def ClientNickNameExisted(name):
-    if clientDic.has_key(name):
+    if name in clientDic:
         return True
     else:
         return False
@@ -144,7 +150,7 @@ def AcceptHandler():
 
             sysLog("%s - Connected" % str(addr))
 
-            t = threading.Thread(target=ClientHandler, args=(clientSocket, addr))
+            t = Thread(target=ClientHandler, args=(clientSocket, addr))
             t.start()
     except KeyboardInterrupt:
         print "\r\n"
@@ -170,15 +176,18 @@ def ClientHandler(client, addr):
                 if data[0] == "NICK":
                     if nicknameSeted:
                         client.send(parseMsg("INFO", "ALREADY_SET"))
-                        sysLog("%s - Set nickname - %s - %s" % (str(addr), data[1], "Failed(ALREADY_SET)"))
+                        sysLog("%s - Set nickname - %s - %s" %
+                               (str(addr), data[1], "Failed(ALREADY_SET)"))
                         continue
                     if ClientNickNameExisted(data[1]):
                         client.send(parseMsg("INFO", "NICKNAME_EXIST"))
-                        sysLog("%s - Set nickname - %s - %s" % (str(addr), data[1], "Failed(NICKNAME_EXIST)"))
+                        sysLog("%s - Set nickname - %s - %s" %
+                               (str(addr), data[1], "Failed(NICKNAME_EXIST)"))
                         continue
                     if (" " in data[1]) or (":" in data[1]) or (data[1][0] == "@") or (data[1][0] == "&"):
                         client.send(parseMsg("INFO", "NICKNAME_NOT_ALLOW"))
-                        sysLog("%s - Set nickname - %s - %s" % (str(addr), data[1], "Failed(NICKNAME_NOT_ALLOW)"))
+                        sysLog("%s - Set nickname - %s - %s" %
+                               (str(addr), data[1], "Failed(NICKNAME_NOT_ALLOW)"))
                         continue
 
                     # All green! and set nickname now
@@ -192,7 +201,8 @@ def ClientHandler(client, addr):
                     sysLog("%s - Set nickname - %s - %s" % (str(addr), data[1], "OK"))
 
                     if BroadcastJoinLeave:
-                        Broadcast(parseMsg("MSG", "@%s:%s" % (ServerMsgName, '"' + nickname + '" Joined.')), True)
+                        Broadcast(parseMsg("MSG", "@%s:%s" %
+                                           (ServerMsgName, '"' + nickname + '" Joined.')), True)
 
                     continue
 
@@ -200,7 +210,8 @@ def ClientHandler(client, addr):
                 if data[0] == "MSG":
                     if not nicknameSeted:
                         client.send(parseMsg("INFO", "NICKNAME_NOT_SET"))
-                        sysLog("%s - Send Msg - %s - %s" % (str(addr), data[1], "Failed(NICKNAME_NOT_SET)"))
+                        sysLog("%s - Send Msg - %s - %s" %
+                               (str(addr), data[1], "Failed(NICKNAME_NOT_SET)"))
                         continue
 
                     # All green, broadcast msg
@@ -214,7 +225,8 @@ def ClientHandler(client, addr):
                     unregClient(nickname)
                 client.close()
                 if BroadcastJoinLeave and nicknameSeted:
-                    Broadcast(parseMsg("MSG", "@%s:%s" % (ServerMsgName, '"' + nickname + '" Leaved.')), True)
+                    Broadcast(parseMsg("MSG", "@%s:%s" %
+                                       (ServerMsgName, '"' + nickname + '" Leaved.')), True)
                 sysLog("%s (%s) - Disconnected" % (str(addr), nickname))
     except Exception, e:
         # lost connection
@@ -224,7 +236,8 @@ def ClientHandler(client, addr):
         client.close()
 
         if BroadcastJoinLeave and nicknameSeted:
-            Broadcast(parseMsg("MSG", "@%s:%s" % (ServerMsgName, '"' + nickname + '" Leaved.')), True)
+            Broadcast(parseMsg("MSG", "@%s:%s" %
+                               (ServerMsgName, '"' + nickname + '" Leaved.')), True)
         sysLog("%s (%s) - Disconnected")
 
 
