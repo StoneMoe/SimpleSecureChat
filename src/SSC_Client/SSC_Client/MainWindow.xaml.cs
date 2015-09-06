@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -33,7 +33,6 @@ namespace SSC_Client
 
         IntPtr wpfHwnd;
 
-<<<<<<< HEAD
         //UI
         SolidColorBrush selfNameColor = new SolidColorBrush(Color.FromRgb(51, 153, 102)); //Green
         SolidColorBrush otherNameColor = new SolidColorBrush(Color.FromRgb(0, 102, 225)); //deep blue
@@ -42,14 +41,6 @@ namespace SSC_Client
 
         string programTitle = "Simple Secure Chat Client";
 
-=======
-        public enum ConnectStatus
-        {
-            Connect = 1,
-            Disconnect = 2,
-            Working = 3
-        }
->>>>>>> 82969ab83986ca478778d4265312cf282ea499c5
 
         public enum ConnectStatus
         {
@@ -96,10 +87,7 @@ namespace SSC_Client
             messageArea.Document.Blocks.Clear();
             makeSend(false);
             makeConnect(ConnectStatus.Connect);
-<<<<<<< HEAD
             TitleTextBlock.Text = programTitle;
-=======
->>>>>>> 82969ab83986ca478778d4265312cf282ea499c5
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
@@ -231,13 +219,10 @@ namespace SSC_Client
                             messageArea.Width = 460;
                             sendBox.Width = 460;
                             ConnectButton.Margin = new Thickness(479, 334, 0, 0);
-<<<<<<< HEAD
 
                             //Title
                             TitleTextBlock.Text = programTitle;
 
-=======
->>>>>>> 82969ab83986ca478778d4265312cf282ea499c5
                             break;
                         case ConnectStatus.Disconnect:
                             ConnectButton.Content = "Disconnect";
@@ -286,11 +271,6 @@ namespace SSC_Client
             //Add to message area
             this.Dispatcher.Invoke(new Action(() =>
             {
-<<<<<<< HEAD
-=======
-                string _name = msg.Substring(0, msg.IndexOf(':', 0, msg.Length));
-                string _msg = msg.Substring(msg.IndexOf(':', 0, msg.Length) + 1);
->>>>>>> 82969ab83986ca478778d4265312cf282ea499c5
 
                 Run fl = new Run(string.Format("{0} {1}", _name, DateTime.Now.ToString("hh:mm:ss")));
                 Run r = new Run(_msg);
@@ -330,19 +310,7 @@ namespace SSC_Client
                     messageArea.Document.Blocks.Add(paragraph);
                 }
 
-<<<<<<< HEAD
                 //flash notice
-=======
-                Paragraph paragrapha = new Paragraph();
-                paragrapha.Margin = new Thickness(3, 6, 0, 3);
-                paragrapha.Foreground = new SolidColorBrush(Color.FromRgb(0, 102, 225));
-                paragrapha.Inlines.Add(fl);
-                messageArea.Document.Blocks.Add(paragrapha);
-                paragrapha = new Paragraph();
-                paragrapha.Margin = new Thickness(3, 0, 0, 6);
-                paragrapha.Inlines.Add(r);
-                messageArea.Document.Blocks.Add(paragrapha);
->>>>>>> 82969ab83986ca478778d4265312cf282ea499c5
                 if (!SSC_Window.IsFocused)
                 {
                     flashTaskBar(wpfHwnd, falshType.FLASHW_TIMERNOFG);
@@ -722,17 +690,9 @@ namespace SSC_Client
             }
         }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 82969ab83986ca478778d4265312cf282ea499c5
 
 
-<<<<<<< HEAD
         #endregion
-=======
-
->>>>>>> 82969ab83986ca478778d4265312cf282ea499c5
 
     }
 }
