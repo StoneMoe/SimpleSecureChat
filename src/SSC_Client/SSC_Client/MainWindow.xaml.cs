@@ -1,16 +1,16 @@
 ﻿using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Windows;
-using System.Net.Sockets;
-using System.Net;
 using System.Windows.Documents;
 using System.Windows.Input;
-using System.Threading;
-using System.Windows.Media;
-using System.IO;
-using System.Runtime.InteropServices;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace SSC_Client
 {
@@ -32,6 +32,15 @@ namespace SSC_Client
         Thread recvThread;
 
         IntPtr wpfHwnd;
+
+        //UI
+        SolidColorBrush selfNameColor = new SolidColorBrush(Color.FromRgb(51, 153, 102)); //Green
+        SolidColorBrush otherNameColor = new SolidColorBrush(Color.FromRgb(0, 102, 225)); //deep blue
+        SolidColorBrush softRed = new SolidColorBrush(Color.FromRgb(255, 100, 100));
+        SolidColorBrush atBackgroundColor = new SolidColorBrush(Color.FromArgb(50, 0, 204, 153));
+
+        string programTitle = "Simple Secure Chat Client";
+
 
         public enum ConnectStatus
         {
@@ -59,6 +68,7 @@ namespace SSC_Client
 
         private void button1_Click(object sender, RoutedEventArgs e)
         {
+            this.Hide();
             Environment.Exit(0);
         }
 
@@ -77,6 +87,7 @@ namespace SSC_Client
             messageArea.Document.Blocks.Clear();
             makeSend(false);
             makeConnect(ConnectStatus.Connect);
+            TitleTextBlock.Text = programTitle;
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
@@ -208,6 +219,10 @@ namespace SSC_Client
                             messageArea.Width = 460;
                             sendBox.Width = 460;
                             ConnectButton.Margin = new Thickness(479, 334, 0, 0);
+
+                            //Title
+                            TitleTextBlock.Text = programTitle;
+
                             break;
                         case ConnectStatus.Disconnect:
                             ConnectButton.Content = "Disconnect";
@@ -221,6 +236,10 @@ namespace SSC_Client
                             messageArea.Width = 660;
                             sendBox.Width = 660;
                             ConnectButton.Margin = new Thickness(479, 435, 0, 0);
+
+                            //Title
+                            TitleTextBlock.Text = string.Format("{0} @ {1} : {2}", nickname, IPBox.Text, PortBox.Text);
+
                             break;
                         case ConnectStatus.Working:
                             ConnectButton.Content = "Wait...";
@@ -239,47 +258,65 @@ namespace SSC_Client
 
         public void AddMessage(string msg, bool self = false)
         {
+            string _name = msg.Substring(0, msg.IndexOf(':', 0, msg.Length));
+            string _msg = msg.Substring(msg.IndexOf(':', 0, msg.Length) + 1);
+
+            //@ detect
+            bool at = false;
+            if (_msg.Contains("@" + nickname))
+            {
+                at = true;
+            }
+
+            //Add to message area
             this.Dispatcher.Invoke(new Action(() =>
             {
-                string _name = msg.Substring(0, msg.IndexOf(':', 0, msg.Length));
-                string _msg = msg.Substring(msg.IndexOf(':', 0, msg.Length) + 1);
 
                 Run fl = new Run(string.Format("{0} {1}", _name, DateTime.Now.ToString("hh:mm:ss")));
                 Run r = new Run(_msg);
 
                 if (self)
                 {
+                    //add Name part
                     Paragraph paragraph = new Paragraph();
                     paragraph.Margin = new Thickness(3, 6, 0, 3);
-                    paragraph.Foreground = new SolidColorBrush(Color.FromRgb(51, 153, 102));
+                    paragraph.Foreground = selfNameColor;
                     paragraph.Inlines.Add(fl);
                     messageArea.Document.Blocks.Add(paragraph);
+
+                    //add msg part
                     paragraph = new Paragraph();
                     paragraph.Margin = new Thickness(3, 0, 0, 6);
                     paragraph.Inlines.Add(r);
                     messageArea.Document.Blocks.Add(paragraph);
-                    if (!SSC_Window.IsFocused)
+                }
+                else
+                {
+                    //add Name part
+                    Paragraph paragraph = new Paragraph();
+                    paragraph.Margin = new Thickness(3, 6, 0, 3);
+                    paragraph.Foreground = otherNameColor;
+                    paragraph.Inlines.Add(fl);
+                    messageArea.Document.Blocks.Add(paragraph);
+
+                    //add msg part
+                    paragraph = new Paragraph();
+                    paragraph.Margin = new Thickness(3, 0, 0, 6);
+                    if (at)
                     {
-                        flashTaskBar(wpfHwnd, falshType.FLASHW_TIMERNOFG);
+                        r.Background = atBackgroundColor;
                     }
-                    return;
+                    paragraph.Inlines.Add(r);
+                    messageArea.Document.Blocks.Add(paragraph);
                 }
 
-                Paragraph paragrapha = new Paragraph();
-                paragrapha.Margin = new Thickness(3, 6, 0, 3);
-                paragrapha.Foreground = new SolidColorBrush(Color.FromRgb(0, 102, 225));
-                paragrapha.Inlines.Add(fl);
-                messageArea.Document.Blocks.Add(paragrapha);
-                paragrapha = new Paragraph();
-                paragrapha.Margin = new Thickness(3, 0, 0, 6);
-                paragrapha.Inlines.Add(r);
-                messageArea.Document.Blocks.Add(paragrapha);
+                //flash notice
                 if (!SSC_Window.IsFocused)
                 {
                     flashTaskBar(wpfHwnd, falshType.FLASHW_TIMERNOFG);
                 }
-                return;
             }));
+
         }
 
         public void addLog(string msg)
@@ -289,10 +326,15 @@ namespace SSC_Client
                 Paragraph paragraph = new Paragraph();
                 Run r = new Run(msg);
                 paragraph.Margin = new Thickness(3, 3, 0, 0);
-                paragraph.Foreground = new SolidColorBrush(Color.FromRgb(255, 100, 100));
+                paragraph.Foreground = softRed;
                 paragraph.Inlines.Add(r);
                 messageArea.Document.Blocks.Add(paragraph);
-                flashTaskBar(wpfHwnd, falshType.FLASHW_TIMERNOFG);
+
+                //flash notice
+                if (!SSC_Window.IsFocused)
+                {
+                    flashTaskBar(wpfHwnd, falshType.FLASHW_TIMERNOFG);
+                }
             }));
         }
 
@@ -567,10 +609,7 @@ namespace SSC_Client
                             data = parseData(packets[i]);
                             if (data[0] == "MSG")
                             {
-                                this.Dispatcher.Invoke(new Action(() =>
-                                {
-                                    AddMessage(data[1]);
-                                }));
+                                AddMessage(data[1]);
                             }
                         }
                     }
@@ -654,8 +693,6 @@ namespace SSC_Client
 
 
         #endregion
-
-
 
     }
 }
