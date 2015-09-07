@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <!--窗口阴影-->
+        <!--Window Shadow-->
         <Style x:Key="WindowShadowStyle" TargetType="{x:Type Window}">
             <Setter Property="AllowsTransparency" Value="true"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -18,9 +18,9 @@
                     <ControlTemplate TargetType="{x:Type Window}">
                         <Grid Margin="10">
                             <Rectangle Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" 
-        						RadiusX="5" RadiusY="5">
+        						RadiusX="1" RadiusY="1">
                                 <Rectangle.Effect>
-                                    <DropShadowEffect BlurRadius="13" ShadowDepth="0"/>
+                                    <DropShadowEffect BlurRadius="8" ShadowDepth="0"/>
                                 </Rectangle.Effect>
                             </Rectangle>
                             <Border Background="{TemplateBinding Background}"
@@ -40,7 +40,6 @@
         
         
         <!--MainButtonStyle-->
-        <!--正常 #FF09A3DC 悬浮 #FF3CC3F5 按下 #FF098CBC-->
         <Style x:Key="MainButtonStyle" TargetType="Button">
             <Setter Property="FontSize" Value="14.667"/>
             <Setter Property="Foreground" Value="White"/>
@@ -48,33 +47,43 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="0" CornerRadius="4" Name="Back">
+                        <Border BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="0" CornerRadius="2" Name="Back">
                             <Border.Background>
-                                <SolidColorBrush x:Name="LoginButtonBackBrush" Color="#FF09A3DC"/>
+                                <SolidColorBrush x:Name="MainButtonBackBrush" Color="#FF09A3DC"/> <!--Blue-->
                             </Border.Background>
                             <ContentPresenter Content="{TemplateBinding ContentControl.Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
+                            
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="LoginButtonBackBrush" Storyboard.TargetProperty="Color" To="#FF3CC3F5" Duration="0:0:0.2"/>
+                                            <ColorAnimation Storyboard.TargetName="MainButtonBackBrush" Storyboard.TargetProperty="Color" To="#FF3CC3F5" Duration="0:0:0.2"/> 
+                                            <!--Light Blue-->
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
                                 <Trigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="LoginButtonBackBrush" Storyboard.TargetProperty="Color" To="#FF09A3DC" Duration="0:0:0.2"/>
+                                            <ColorAnimation Storyboard.TargetName="MainButtonBackBrush" Storyboard.TargetProperty="Color" To="#FF09A3DC" Duration="0:0:0.2"/> 
+                                            <!--Blue-->
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
-                                <!--<Setter TargetName="Back" Property="Background" Value="#FF3CC3F5"/>-->
                             </Trigger>
+                            
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Back" Property="Background" Value="#FF098CBC"/>
+                                <!--Deep Blue-->
                             </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Back" Property="Background" Value="#66666666"/>
+                                <!--Grey-->
+                            </Trigger>
+
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -83,7 +92,6 @@
 
 
         <!--CloseButton-->
-        <!--正常 #00000000(Content:black) 悬浮 #FFD44027(Content:White) 按下 #FFA62A15(Content:White)-->
         <Style x:Key="CloseButton" TargetType="Button">
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="30"/>
@@ -91,32 +99,38 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="0" CornerRadius="0,4,0,0" Name="Back">
+                        <Border BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="0" CornerRadius="0,1,0,0" Name="Back">
                             <Border.Background>
                                 <SolidColorBrush x:Name="CloseButtonBackBrush" Color="#00000000"/>
                             </Border.Background>
                             <ContentPresenter Content="{TemplateBinding ContentControl.Content}" HorizontalAlignment="Center" VerticalAlignment="Center" Name="Content"/>
                         </Border>
                         <ControlTemplate.Triggers>
+                            
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="CloseButtonBackBrush" Storyboard.TargetProperty="Color" To="#FFD44027" Duration="0:0:0.3"/>
+                                            <ColorAnimation Storyboard.TargetName="CloseButtonBackBrush" Storyboard.TargetProperty="Color" To="#FFD44027" Duration="0:0:0.05"/> 
+                                            <!--red-->
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
                                 <Trigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="CloseButtonBackBrush" Storyboard.TargetProperty="Color" To="#00000000" Duration="0:0:0.3"/>
+                                            <ColorAnimation Storyboard.TargetName="CloseButtonBackBrush" Storyboard.TargetProperty="Color" To="#00000000" Duration="0:0:0.2"/>
+                                            <!--No Color-->
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
                             </Trigger>
+
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Back" Property="Background" Value="#FFA62A15"/>
+                                <!--Deep red-->
                             </Trigger>
+                            
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -124,15 +138,8 @@
         </Style>
 
 
-
-
-
-
-
-        <!--MiniButton-->
-        <!--正常 #00000000(Content:black) 悬浮 #FFD44027(Content:White) 按下 #FFA62A15(Content:White)-->
-        <Style x:Key="MiniButton" TargetType="Button">
-            <Setter Property="FontSize" Value="14.667"/>
+        <!--MinimizeButton-->
+        <Style x:Key="MinimizeButton" TargetType="Button">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
@@ -140,42 +147,44 @@
                     <ControlTemplate TargetType="{x:Type Button}">
                         <Border BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="0" CornerRadius="0" Name="Back">
                             <Border.Background>
-                                <SolidColorBrush x:Name="LoginButtonBackBrush" Color="#00000000"/>
+                                <SolidColorBrush x:Name="MinimizeButtonBackBrush" Color="#00000000"/>
                             </Border.Background>
                             <ContentPresenter Content="{TemplateBinding ContentControl.Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
+
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="LoginButtonBackBrush" Storyboard.TargetProperty="Color" To="#FF09A3DC" Duration="0:0:0.2"/>
+                                            <ColorAnimation Storyboard.TargetName="MinimizeButtonBackBrush" Storyboard.TargetProperty="Color" To="#FF09A3DC" Duration="0:0:0.05"/>
+                                            <!--Blue-->
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
                                 <Trigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="LoginButtonBackBrush" Storyboard.TargetProperty="Color" To="#00000000" Duration="0:0:0.2"/>
+                                            <ColorAnimation Storyboard.TargetName="MinimizeButtonBackBrush" Storyboard.TargetProperty="Color" To="#00000000" Duration="0:0:0.2"/>
+                                            <!--No Color-->
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
-                                <!--<Setter TargetName="Back" Property="Background" Value="#FF3CC3F5"/>-->
                             </Trigger>
+
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Back" Property="Background" Value="#FF098CBC"/>
+                                <!--Deep blue-->
                             </Trigger>
+
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-
-            
-            
-            
+        
         <!--CloseButtonContent-->
-        <Style x:Key="path" TargetType="Path">
+        <Style x:Key="path" TargetType="Path" x:Name="CloseXpath">
             <Setter Property="Stretch" Value="Fill"/>
             <Setter Property="Stroke" Value="Black"/>
             <Setter Property="Fill" Value="Black"/>
