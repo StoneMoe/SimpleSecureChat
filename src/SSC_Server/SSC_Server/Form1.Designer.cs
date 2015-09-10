@@ -45,7 +45,6 @@
             this.label5 = new System.Windows.Forms.Label();
             this.broadcastBox = new System.Windows.Forms.CheckBox();
             this.label3 = new System.Windows.Forms.Label();
-            this.debugBox = new System.Windows.Forms.CheckBox();
             this.label6 = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -223,16 +222,6 @@
             this.label3.TabIndex = 5;
             this.label3.Text = "These options can change anytime";
             // 
-            // debugBox
-            // 
-            this.debugBox.AutoSize = true;
-            this.debugBox.Location = new System.Drawing.Point(723, 386);
-            this.debugBox.Name = "debugBox";
-            this.debugBox.Size = new System.Drawing.Size(84, 16);
-            this.debugBox.TabIndex = 5;
-            this.debugBox.Text = "Debug Mode";
-            this.debugBox.UseVisualStyleBackColor = true;
-            // 
             // label6
             // 
             this.label6.AutoSize = true;
@@ -248,7 +237,6 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(861, 453);
             this.Controls.Add(this.label6);
-            this.Controls.Add(this.debugBox);
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.StartButton);
             this.Controls.Add(this.LogBox);
@@ -277,7 +265,6 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TabPage tabPage2;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.CheckBox debugBox;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.TextBox AESbox;
         private System.Windows.Forms.CheckBox broadcastBox;

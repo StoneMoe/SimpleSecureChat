@@ -47,7 +47,6 @@ namespace SSC_Server
                 if (enable)
                 {
                     ListenBox.Enabled = true;
-                    debugBox.Enabled = true;
                     AESbox.Enabled = true;
 
                     StartButton.Text = "Start Server";
@@ -55,7 +54,6 @@ namespace SSC_Server
                 else
                 {
                     ListenBox.Enabled = false;
-                    debugBox.Enabled = false;
                     AESbox.Enabled = false;
 
                     StartButton.Text = "Stop Server";
@@ -300,12 +298,9 @@ namespace SSC_Server
                 return;
             }
 
-            //set debug mode statu
-            inDebugMode = debugBox.Checked;
+            debugLog("Server in debug mode now(Just output more infomation in console)");
 
-            debugLog("Server start in debug mode(Just output more infomation in console)");
-
-            debugLog("Checking IP:Port");
+            debugLog("Checking config");
             try
             {
                 IPAddress.Parse(ListenBox.Text.Split(':')[0]);
@@ -322,9 +317,6 @@ namespace SSC_Server
                 return;
             }
 
-
-
-            debugLog("Checking AES Key");
             if (!(AESbox.Text.Length == 16 || AESbox.Text.Length == 24 || AESbox.Text.Length == 32))
             {
                 ERRLog("AES Key must be 16/24/32 bytes");
@@ -332,13 +324,13 @@ namespace SSC_Server
             }
 
 
-            debugLog("All Green! Server starting now");
+            debugLog("Starting worker");
             makeUI(false);
 
-            debugLog("Setting AES Key");
+            debugLog("Loading AES Key");
             key = AESbox.Text;
 
-            debugLog("MainSocket initializing");
+            debugLog("Loading MainSocket");
             IPAddress ip = IPAddress.Parse(ListenBox.Text.Split(':')[0]);
             int port = Convert.ToInt32(ListenBox.Text.Split(':')[1]);
 
@@ -351,7 +343,7 @@ namespace SSC_Server
                 mainSocket.Bind(iep);
                 mainSocket.Listen(1024);
 
-                debugLog("Accept Handler thread starting");
+                debugLog("Starting Accept Handler thread");
                 Thread t = new Thread(() =>
                 {
                     AcceptHandler();
@@ -390,7 +382,7 @@ namespace SSC_Server
                     Socket client = mainSocket.Accept();
                     SYSLog(string.Format("{0} - Connected", client.RemoteEndPoint.ToString()));
 
-                    debugLog("Client Handler thread starting");
+                    debugLog("Starting new Client Handler thread");
                     Thread t = new Thread(() =>
                     {
                         ClientHandler(client);
@@ -439,7 +431,7 @@ namespace SSC_Server
             string nickname = "";
             client.ReceiveTimeout = 15000; //not ready client drop interval 15s
 
-            string tmpip = client.RemoteEndPoint.ToString();
+            string addr = client.RemoteEndPoint.ToString();
 
             //network
             bool alreadyDisposed = false;
@@ -576,10 +568,11 @@ namespace SSC_Server
                     else
                     {
                         //may be lost connection 1
+                        //Recv size == 0
+
                         if (NicknameSeted)
                         {
                             UnRegClient(nickname);
-
                         }
 
                         if (!alreadyDisposed)
@@ -595,8 +588,12 @@ namespace SSC_Server
                             Broadcast(parseMsg("MSG", string.Format("@{0}:{1}", ServerNameBox.Text, "\"" + nickname + "\" Leaved.")), true);
                         }
 
-                        SYSLog(string.Format("{0} ({1}) - Disconnected", tmpip, nickname));
-                        tmpip = null;
+                        debugLog("This is No.1 Disconnect Point.");
+                        SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
+                        addr = null;
+
+                        //exit endless while
+                        break;
                     }
                 }
             }
@@ -620,9 +617,10 @@ namespace SSC_Server
                     Broadcast(parseMsg("MSG", string.Format("@{0}:{1}", ServerNameBox.Text, "\"" + nickname + "\" Leaved.")), true);
                 }
 
-                ERRLog(string.Format("{0} - Unknown - {1} - {2}", tmpip, "Unknown", "Failed(Unexpected MSG Format/AES Key Error)"));
-                SYSLog(string.Format("{0} ({1}) - Disconnected", tmpip, nickname));
-                tmpip = null;
+                ERRLog(string.Format("{0} - Unknown - {1} - {2}", addr, "Unknown", "Failed(Unexpected MSG Format/AES Key Error)"));
+                debugLog("This is No.2 Disconnect Point.");
+                SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
+                addr = null;
             }
             catch (SocketException)
             {
@@ -643,8 +641,9 @@ namespace SSC_Server
                 {
                     Broadcast(parseMsg("MSG", string.Format("@{0}:{1}", ServerNameBox.Text, "\"" + nickname + "\" Leaved.")), true);
                 }
-                SYSLog(string.Format("{0} ({1}) - Disconnected", tmpip, nickname));
-                tmpip = null;
+                debugLog("This is No.3 Disconnect Point.");
+                SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
+                addr = null;
             }
             catch (ObjectDisposedException)
             {
@@ -665,8 +664,9 @@ namespace SSC_Server
                 {
                     Broadcast(parseMsg("MSG", string.Format("@{0}:{1}", ServerNameBox.Text, "\"" + nickname + "\" Leaved.")), true);
                 }
-                SYSLog(string.Format("{0} ({1}) - Disconnected", tmpip, nickname));
-                tmpip = null;
+                debugLog("This is No.4 Disconnect Point.");
+                SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
+                addr = null;
             }
             catch (Exception ex)
             {
@@ -687,10 +687,11 @@ namespace SSC_Server
                 {
                     Broadcast(parseMsg("MSG", string.Format("@{0}:{1}", ServerNameBox.Text, "\"" + nickname + "\" Leaved.")), true);
                 }
-                ERRLog(string.Format("{0} - Unknown - {1} - {2}", tmpip, "Unknown", "Failed(Unknown Exception)"));
-                SYSLog(string.Format("{0} ({1}) - Disconnected", tmpip, nickname));
-                Console.WriteLine(ex.ToString());
-                tmpip = null;
+                ERRLog(string.Format("{0} - Unknown - {1} - {2}", addr, "Unknown", "Failed(Unknown Exception)"));
+                ERRLog(string.Format("Exception Info: {0}", ex.ToString()));
+                debugLog("This is No.5 Disconnect Point.");
+                SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
+                addr = null;
             }
         }
 
