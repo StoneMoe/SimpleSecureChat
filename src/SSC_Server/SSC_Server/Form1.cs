@@ -250,11 +250,6 @@ namespace SSC_Server
         {
             if (StartButton.Text == "Stop Server")
             {
-                if (isShuttingDown)
-                {
-                    MessageBox.Show("Server is still shutting down, please wait");
-                    return;
-                }
                 Thread t = new Thread(() =>
                 {
                     SYSLog("Server is shutting down");
