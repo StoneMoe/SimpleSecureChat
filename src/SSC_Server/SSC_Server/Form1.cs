@@ -13,7 +13,7 @@ namespace SSC_Server
     {
         Random ra = new Random();
 
-        bool inDebugMode = false;
+        bool inDebugMode = true;
 
         Socket mainSocket;
 
@@ -318,11 +318,8 @@ namespace SSC_Server
                 return;
             }
 
-
-            debugLog("Starting worker");
             makeUI(false);
 
-            debugLog("Loading AES Key");
             key = AESbox.Text;
 
             debugLog("Loading MainSocket");
@@ -562,7 +559,6 @@ namespace SSC_Server
                     }
                     else
                     {
-                        //may be lost connection 1
                         //Recv size == 0
 
                         if (NicknameSeted)
@@ -583,7 +579,7 @@ namespace SSC_Server
                             Broadcast(parseMsg("MSG", string.Format("@{0}:{1}", ServerNameBox.Text, "\"" + nickname + "\" Leaved.")), true);
                         }
 
-                        debugLog("This is No.1 Disconnect Point.");
+                        debugLog("Disconnect due to recving 0 byte");
                         SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
                         addr = null;
 
@@ -594,7 +590,6 @@ namespace SSC_Server
             }
             catch (IndexOutOfRangeException)
             {
-                //may be lost connection 2
                 if (NicknameSeted)
                 {
                     UnRegClient(nickname);
@@ -613,13 +608,12 @@ namespace SSC_Server
                 }
 
                 ERRLog(string.Format("{0} - Unknown - {1} - {2}", addr, "Unknown", "Failed(Unexpected MSG Format/AES Key Error)"));
-                debugLog("This is No.2 Disconnect Point.");
+                debugLog("Disconnect due to IndexOutOfRangeException");
                 SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
                 addr = null;
             }
             catch (SocketException)
             {
-                //may be lost connection 3
                 if (NicknameSeted)
                 {
                     UnRegClient(nickname);
@@ -636,13 +630,12 @@ namespace SSC_Server
                 {
                     Broadcast(parseMsg("MSG", string.Format("@{0}:{1}", ServerNameBox.Text, "\"" + nickname + "\" Leaved.")), true);
                 }
-                debugLog("This is No.3 Disconnect Point.");
+                debugLog("Disconnect due to SocketException");
                 SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
                 addr = null;
             }
             catch (ObjectDisposedException)
             {
-                //may be lost connection 4
                 if (NicknameSeted)
                 {
                     UnRegClient(nickname);
@@ -659,13 +652,12 @@ namespace SSC_Server
                 {
                     Broadcast(parseMsg("MSG", string.Format("@{0}:{1}", ServerNameBox.Text, "\"" + nickname + "\" Leaved.")), true);
                 }
-                debugLog("This is No.4 Disconnect Point.");
+                debugLog("Disconnect due to ObjectDisposedException");
                 SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
                 addr = null;
             }
             catch (Exception ex)
             {
-                //may be lost connection 5
                 if (NicknameSeted)
                 {
                     UnRegClient(nickname);
@@ -684,7 +676,7 @@ namespace SSC_Server
                 }
                 ERRLog(string.Format("{0} - Unknown - {1} - {2}", addr, "Unknown", "Failed(Unknown Exception)"));
                 ERRLog(string.Format("Exception Info: {0}", ex.ToString()));
-                debugLog("This is No.5 Disconnect Point.");
+                debugLog("Disconnect due to Unknown Exception");
                 SYSLog(string.Format("{0} ({1}) - Disconnected", addr, nickname));
                 addr = null;
             }
