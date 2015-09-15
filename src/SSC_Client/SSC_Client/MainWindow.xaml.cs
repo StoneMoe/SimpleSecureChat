@@ -58,7 +58,10 @@ namespace SSC_Client
 
         private void Window_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            this.DragMove();
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                this.DragMove();
+            }
         }
 
         private void button2_Click(object sender, RoutedEventArgs e)
