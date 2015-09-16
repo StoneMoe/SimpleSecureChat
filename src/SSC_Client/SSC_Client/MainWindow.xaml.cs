@@ -478,8 +478,28 @@ namespace SSC_Client
                 IPEndPoint iep = new IPEndPoint(ip, port);
 
                 s = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                s.Connect(new IPEndPoint(ip, Convert.ToInt32(PortBox.Text)));
+                s.BeginConnect(
+                    new IPEndPoint(ip,Convert.ToInt32(PortBox.Text)),
+                    new AsyncCallback(connectEnd),
+                    s);
+            }
+            catch (Exception ex)
+            {
+                s.Dispose();
+                key = null;
+                addLog("Unknown Exception Occured");
+                MessageBox.Show(ex.Message);
+                makeConnect(ConnectStatus.Connect);
+            }
+        }
 
+        public void connectEnd(IAsyncResult iars)
+        {
+            Socket end = (Socket)iars.AsyncState;
+            try
+            {
+                end.EndConnect(iars);
+                s = end;
                 addLog("Connected");
                 presetThread = new Thread(() =>
                 {
@@ -493,13 +513,6 @@ namespace SSC_Client
                 s.Dispose();
                 key = null;
                 addLog("Can't reach Host");
-                makeConnect(ConnectStatus.Connect);
-            }
-            catch (OutOfMemoryException)
-            {
-                s.Dispose();
-                key = null;
-                addLog("Out of Memory");
                 makeConnect(ConnectStatus.Connect);
             }
             catch (Exception ex)
