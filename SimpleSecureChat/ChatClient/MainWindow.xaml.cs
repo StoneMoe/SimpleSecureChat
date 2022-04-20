@@ -141,8 +141,8 @@ namespace SSC_Client
         #region Data Helper
         public string Encrypt(string toEncrypt, string key)
         {
-            byte[] keyArray = UTF8Encoding.UTF8.GetBytes(key);
-            byte[] toEncryptArray = UTF8Encoding.UTF8.GetBytes(toEncrypt);
+            byte[] keyArray = Encoding.UTF8.GetBytes(key);
+            byte[] toEncryptArray = Encoding.UTF8.GetBytes(toEncrypt);
 
             RijndaelManaged rDel = new RijndaelManaged();
             rDel.Key = keyArray;
