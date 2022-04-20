@@ -1,42 +1,50 @@
-# Simple Secure Chat (SSC)
-An Instant Messaging solution based on simplify and secure ideas
+# Simple Secure Chat
+Setup your own encrypted chat room in seconds, on Windows/macOS/Linux.
 
-# Get Start
-**Server:**
+## Feature
+- [ ] Pre-shared key Authentication
+- [ ] Server fingerprint identify
+- [ ] Perfect Forward Security
 
-Windows only(C#,DotNET): `src/SSC_Server`
+## Quickstart
+Download server and client executable from [release page](/releases/latest)
 
-Other Platform(Python): `src/SSC_Server_Lite`
+## Protocol
+### Ver
+1.0
 
-**Client:**
+### Message Layout
+| Name   | Length   | Desc                         |
+| ------ | -------- | ---------------------------- |
+| Length | 4byte    | msg length                   |
+| Data   | variable | msg data with AES encryption |
 
-Windows only(C#,DotNET 3.5+): `src/SSC_Client`
+### Data Layout
+*The number of parameters is variable*
+| Name             | Length   | Desc                  |
+| ---------------- | -------- | --------------------- |
+| Type             | 1byte    | msg type              |
+| Param n length   | 4byte    | param n data length   |
+| Param n data     | variable | param n data          |
+| Param n+1 length | 4byte    | param n+1 data length |
+| Param n+1 data   | variable | param n+1 data        |
 
-# SSC Protocol
+### Common Message Type
+* 0x00 KX: Session key exchange
+  * Param: EECDH Key
+* 0x01 MSG: Broadcast chat message to everyone
+### Client Message Type
+* 0x50 CLIENT_HELLO: Client request server's certificate for identity check
+* 0x51 NICK: Client trying to acquire a unique nickname with this type of message
+  * Param: nickname text
+### Server Message Type
+* 0xA0 SERVER_HELLO: respond server certificate
+  * Param: certificate
+* 0xA2 RESP: respond to client's request
+  * Param: response text
 
-Protocol Version: 0.1
+## Contribute
+You can contribute code directly, or submit issue you found
 
-**Basic Format**: `AES([requestType]|AES(requestData))\r\n`
-
-* **requestTypes**
-  * NICK: For client to set a unique nickname for itself in this session
-    * This command send by client only
-    * Client must set a nickname, otherwise server won't push any message or accept any other request from this client
-    * Each client's nickname should be unique
-    * Suggest server to keep some spacial first char to set Server/Admin apart from normal users like '@' and '&'
-    * Possible response Info: ALREADY_SET, NICKNAME_EXIST, NICKNAME_NOT_ALLOW, OK
-  * MSG: For client/server to send a *Message Type* data to server/client
-    * Possible response Info: NICKNAME_NOT_SET
-  * INFO: For server to send a response info of the last request from client
-    * This command send by server only
-    * response info is not necessary
-
-* **Suggestions**
-  * For security
-    * When server cannot decrypt the request incoming correctly, server should drop the connection with client immediately
-    * Server should set a connection time limit when client still don't have a nickname for preventing (D)DOS attack
-
-# Welcome Pull requests and Issues.
-
-# License
-GPL v2
+## License
+GPL v3
