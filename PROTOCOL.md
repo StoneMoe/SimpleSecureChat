@@ -1,4 +1,5 @@
 ## Protocol
+Simple Secure Chat use MessagePack for data serialization
 ### Ver
 1.0
 
@@ -9,7 +10,7 @@
 | Data   | variable | msg data with AES encryption |
 
 ### Data Layout
-*The number of parameters is variable*
+*The number of parameters is variable and can be zero*
 | Name             | Length   | Desc                  |
 | ---------------- | -------- | --------------------- |
 | Type             | 1byte    | msg type              |

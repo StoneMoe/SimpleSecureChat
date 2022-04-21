@@ -13,7 +13,7 @@ namespace ChatServer
     {
         Random ra = new Random();
         Socket mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        string listenAddr = "127.0.0.1:12344";
+        string listenAddr = "0.0.0.0:12344";
         bool isShuttingDown = false;
         bool shouldBroadcastJoinLeave = true;
         string AESKey = "SSCv3*Default_AES@Key&1234567890";
@@ -78,7 +78,7 @@ namespace ChatServer
         public string[] parseData(string rawdata)
         {
             string first = Decrypt(rawdata, AESKey);
-            string[] tmpsplit = first.Split(new String[] { "|" }, StringSplitOptions.None);
+            string[] tmpsplit = first.Split(new[] { "|" }, StringSplitOptions.None);
             string[] result = new string[2];
             result[0] = tmpsplit[0];
             result[1] = Decrypt(tmpsplit[1], AESKey);
@@ -98,41 +98,38 @@ namespace ChatServer
 
         public Server()
         {
-            Log("Checking config");
+            IPAddress ip = IPAddress.Any;
             try
             {
-                IPAddress.Parse(listenAddr.Split(':')[0]);
+                ip = IPAddress.Parse(listenAddr.Split(':')[0]);
             }
             catch (Exception)
             {
                 Log("Listen IP Invalid");
-                return;
+                Environment.Exit(0);
             }
 
-            if (Convert.ToInt32(listenAddr.Split(':')[1]) > 65535 || Convert.ToInt32(listenAddr.Split(':')[1]) < 1)
+            int port = Convert.ToInt32(listenAddr.Split(':')[1]);
+            if (port > 65535 || port < 1)
             {
                 Log("Listen Port Invalid");
-                return;
+                Environment.Exit(0);
             }
 
-            if (!(AESKey.Length == 16 || AESKey.Length == 24 || AESKey.Length == 32))
+            if (!new[] { 16, 24, 32 }.Contains(AESKey.Length) || Encoding.UTF8.GetByteCount(AESKey) != AESKey.Length)
             {
-                Log("AES Key must be 16/24/32 bytes");
-                return;
+                Log("AES Key must be 16/24/32 bytes long and must be ASCII encoded");
+                Environment.Exit(0);
             }
 
             Log("Creating socket");
-            IPAddress ip = IPAddress.Parse(listenAddr.Split(':')[0]);
-            int port = Convert.ToInt32(listenAddr.Split(':')[1]);
+
 
             try
             {
                 IPEndPoint iep = new IPEndPoint(ip, port);
                 mainSocket.Bind(iep);
                 mainSocket.Listen(1024);
-
-                Log("Starting loop");
-                Loop();
             }
             catch (SocketException)
             {
@@ -184,7 +181,6 @@ namespace ChatServer
                     Socket client = mainSocket.Accept();
                     Log(string.Format("{0} - Connected", client.RemoteEndPoint.ToString()));
 
-                    Log("Starting new Client Handler thread");
                     Thread t = new Thread(() =>
                     {
                         ClientHandler(client);
@@ -219,9 +215,6 @@ namespace ChatServer
 
         public void ClientHandler(Socket client)
         {
-            /*
-             * msg format: AES([command]|AES([data]))
-             */
             byte[] buffer;
             int recvLength;
 
@@ -318,7 +311,7 @@ namespace ChatServer
 
                             Log(string.Format("{0} ({1}): {2}", client.RemoteEndPoint.ToString(), nickname, data[1]));
 
-                            string[] commandstring = data[1].Split(new String[] { " " }, StringSplitOptions.None);
+                            string[] commandstring = data[1].Split(' ', StringSplitOptions.None);
 
                             //is this msg a command?
                             if (data[1] == "@h")
