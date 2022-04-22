@@ -1,9 +1,5 @@
 ﻿using Common.Log;
 using Common.Network;
-using System;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 
 namespace ChatServer
 {
@@ -72,7 +68,6 @@ namespace ChatServer
                     {
                         client.Send(new(MsgType.NICK, "Nickname existed"));
                         log("Failed(DUPLICATE)");
-                        client.Shutdown();
                         return;
                     }
 
@@ -81,7 +76,6 @@ namespace ChatServer
                     {
                         client.Send(new(MsgType.NICK, "Illegal nickname"));
                         log("Failed(ILLEGAL)");
-                        client.Shutdown();
                         return;
                     }
 
