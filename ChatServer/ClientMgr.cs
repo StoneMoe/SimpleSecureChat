@@ -36,14 +36,17 @@ namespace ChatServer
 
         public static void KickAllClient()
         {
-            try
+            foreach (var item in clientMap)
             {
-                foreach (var item in clientMap)
+                try
                 {
                     item.Value.Shutdown();
                 }
+                catch
+                {
+                    //ignore
+                }
             }
-            catch { }
 
         }
 
