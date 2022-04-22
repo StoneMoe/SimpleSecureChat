@@ -12,6 +12,6 @@ namespace ChatClient.Visual
         public static readonly SolidColorBrush Green = new(Color.FromRgb(51, 153, 102));
         public static readonly SolidColorBrush DeepBlue = new(Color.FromRgb(0, 102, 225));
         public static readonly SolidColorBrush SoftRed = new(Color.FromRgb(255, 100, 100));
-        public static readonly SolidColorBrush BrightYellow = new(Color.FromArgb(50, 0, 204, 153));
+        public static readonly SolidColorBrush CyanBlue = new(Color.FromArgb(50, 0, 204, 153));
     }
 }

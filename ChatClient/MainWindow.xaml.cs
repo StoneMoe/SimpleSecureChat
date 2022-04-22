@@ -197,7 +197,7 @@ namespace SSC_Client
                             KeyBox.IsEnabled = true;
 
                             messageArea.Width = sendBox.Width = 460;
-                            ConnectButton.Margin = new Thickness(479, 334, 0, 0);
+                            ConnectButton.Margin = new Thickness(479, 275, 0, 0);
 
                             SetSendUI(false);
 
@@ -285,7 +285,7 @@ namespace SSC_Client
                     paragraph.Margin = new Thickness(3, 0, 0, 6);
                     if (at)
                     {
-                        r.Background = Colors.BrightYellow;
+                        r.Background = Colors.CyanBlue;
                     }
                     paragraph.Inlines.Add(r);
                     messageArea.Document.Blocks.Add(paragraph);
@@ -410,7 +410,8 @@ namespace SSC_Client
                             else
                             {
                                 AddLog(msg.GetParam<string>(0));
-                                m_tcp.Shutdown();
+                                DoDisconnect();
+                                return; // exit readNext loop
                             }
                             break;
                         case MsgType.MSG:
@@ -426,7 +427,7 @@ namespace SSC_Client
             }
             catch (Exception ex)
             {
-                AddLog($"{ex.Message}");
+                AddLog(ex.ToString());
             }
             finally
             {
@@ -455,6 +456,6 @@ namespace SSC_Client
                 //ignore
             }
         }
-        
+
     }
 }
