@@ -11,24 +11,28 @@ Simple Secure Chat use MessagePack for data serialization
 
 ### Data Layout
 *The number of parameters is variable and can be zero*
-| Name             | Length   | Desc                  |
-| ---------------- | -------- | --------------------- |
-| Type             | 1byte    | msg type              |
-| Param n length   | 4byte    | param n data length   |
-| Param n data     | variable | param n data          |
-| Param n+1 length | 4byte    | param n+1 data length |
-| Param n+1 data   | variable | param n+1 data        |
+| Name   | Type     | Desc     |
+| ------ | -------- | -------- |
+| Type   | byte     | msg type |
+| Params | object[] | params   |
 
-### Common Message Type
-* 0x00 KX: Session key exchange
-  * Param: EECDH Key
-* 0x01 MSG: Broadcast chat message to everyone
-### Client Message Type
-* 0x50 CLIENT_HELLO: Client request server's certificate for identity check
-* 0x51 NICK: Client trying to acquire a unique nickname with this type of message
-  * Param: nickname text
-### Server Message Type
-* 0xA0 SERVER_HELLO: respond server certificate
-  * Param: certificate
-* 0xA2 RESP: respond to client's request
-  * Param: response text
+### Message Type
+* 0x00 HELLO: Session key exchange
+* 0x01 KEY: session key exchange message
+  * Param0: EECDH Key
+* 0x02 NICK: Broadcast chat message to everyone
+  * Server:
+    * Param0: string result
+      * "OK": nickname ok
+      * "other text": error message
+  * Client:
+    * Param0: string nickname
+* 0x03 MSG: chat message
+  * Server:
+    * Param0: string nickname
+    * Param1: string messageText
+  * Client:
+    * Param0: string messageText
+* 0xA0 SYS: system message
+  * Server:
+    * Param0: string messageText

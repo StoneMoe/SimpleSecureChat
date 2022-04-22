@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common.Network;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
@@ -9,16 +10,16 @@ namespace ChatServer
 {
     internal class ClientMgr
     {
-        public static Dictionary<string, Socket> clientMap = new Dictionary<string, Socket>();
+        public static Dictionary<string, TCPClient> clientMap = new();
 
-        public static void Register(string name, Socket s)
+        public static void Register(string name, TCPClient s)
         {
             clientMap.Add(name, s);
         }
 
-        public static void Unregister(string name)
+        public static void Unregister(TCPClient client)
         {
-            clientMap.Remove(name);
+            clientMap.Remove((string)client.Storage.GetValueOrDefault("nick", ""));
         }
 
         public static bool ClientNicknameExisted(string username)
@@ -33,20 +34,20 @@ namespace ChatServer
             return false;
         }
 
-        public static void kickAllClient()
+        public static void KickAllClient()
         {
             try
             {
                 foreach (var item in clientMap)
                 {
-                    item.Value.Dispose();
+                    item.Value.Shutdown();
                 }
             }
             catch { }
 
         }
 
-        public static string fmtAllClients()
+        public static string FmtAllClients()
         {
             string temp = "";
             foreach (var s in clientMap)
@@ -54,6 +55,25 @@ namespace ChatServer
                 temp += string.Format("\"{0}\" ", s.Key);
             }
             return temp;
+        }
+
+        public static void Broadcast(Message msg)
+        {
+            Broadcast(msg, null);
+        }
+        public static void Broadcast(Message msg, TCPClient? except)
+        {
+            foreach (var s in clientMap)
+            {
+                try
+                {
+                    if (except == null || except != s.Value) s.Value.Send(msg);
+                }
+                catch
+                {
+                    //ignore
+                }
+            }
         }
     }
 }

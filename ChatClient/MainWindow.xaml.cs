@@ -1,16 +1,17 @@
-﻿using System;
+﻿using ChatClient.Visual;
+using Common.Network;
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
-using System.Windows.Media;
 
 namespace SSC_Client
 {
@@ -19,34 +20,21 @@ namespace SSC_Client
     /// </summary>
     public partial class MainWindow : Window
     {
-        Socket s;
+        TCPClient m_tcp;
 
-        string nickname;
+        string m_nick;
 
-        bool isDisconnecting;
+        UIState m_UIState;
+        IntPtr m_wpfHwnd;
 
-        string key;
+        readonly string m_WndTitle = "Simple Secure Chat";
 
-        Thread presetThread;
-
-        Thread recvThread;
-
-        IntPtr wpfHwnd;
-
-        //UI
-        SolidColorBrush selfNameColor = new SolidColorBrush(Color.FromRgb(51, 153, 102)); //Green
-        SolidColorBrush otherNameColor = new SolidColorBrush(Color.FromRgb(0, 102, 225)); //deep blue
-        SolidColorBrush softRed = new SolidColorBrush(Color.FromRgb(255, 100, 100));
-        SolidColorBrush atBackgroundColor = new SolidColorBrush(Color.FromArgb(50, 0, 204, 153));
-
-        string programTitle = "Simple Secure Chat Client";
-
-
-        public enum ConnectStatus
+        public enum UIState
         {
-            Connect = 1,
-            Disconnect = 2,
-            Working = 3
+            Idle,
+            Connected,
+            Disconnecting,
+            Connecting
         }
 
 
@@ -56,7 +44,7 @@ namespace SSC_Client
             InitializeComponent();
         }
 
-        private void Window_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
@@ -64,12 +52,12 @@ namespace SSC_Client
             }
         }
 
-        private void button2_Click(object sender, RoutedEventArgs e)
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             this.WindowState = WindowState.Minimized;
         }
 
-        private void button1_Click(object sender, RoutedEventArgs e)
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             this.Hide();
             Environment.Exit(0);
@@ -84,13 +72,11 @@ namespace SSC_Client
         {
             //flash notice init
             WindowInteropHelper wndHelper = new WindowInteropHelper(this);
-            wpfHwnd = wndHelper.Handle;
+            m_wpfHwnd = wndHelper.Handle;
 
             //UI reset
-            messageArea.Document.Blocks.Clear();
-            makeSend(false);
-            makeConnect(ConnectStatus.Connect);
-            TitleTextBlock.Text = programTitle;
+            SetUI(UIState.Idle);
+            ClearMessageArea();
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
@@ -98,7 +84,7 @@ namespace SSC_Client
             Sendmsg();
         }
 
-        private void saveButton_Click(object sender, RoutedEventArgs e)
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -109,18 +95,17 @@ namespace SSC_Client
                 sw.Write(System.Windows.Markup.XamlWriter.Save(messageArea.Document).Replace("<Paragraph", "<br><span").Replace("</Paragraph>", "</span>"));
                 sw.Close();
                 fs.Close();
-                addLog("Chat log saved to Desktop");
+                AddLog("Chat log saved to Desktop");
             }
             catch (Exception)
             {
-                addLog("Chat log save failed");
+                AddLog("Chat log save failed");
             }
 
         }
 
-        private void sendBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void SendBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-
             if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Enter)
             {
                 e.Handled = true;
@@ -136,81 +121,73 @@ namespace SSC_Client
             }
         }
 
-        #endregion
-
-        #region Data Helper
-        public string Encrypt(string toEncrypt, string key)
+        private void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            byte[] keyArray = Encoding.UTF8.GetBytes(key);
-            byte[] toEncryptArray = Encoding.UTF8.GetBytes(toEncrypt);
+            //Disconnect
+            if (m_UIState == UIState.Connected)
+            {
+                DoDisconnect();
+                return;
+            }
 
-            RijndaelManaged rDel = new RijndaelManaged();
-            rDel.Key = keyArray;
-            rDel.Mode = CipherMode.ECB;
-            rDel.Padding = PaddingMode.PKCS7;
+            //Connect
+            IPAddress ip;
+            int port;
+            try
+            {
+                ip = Utils.Resolve(IPBox.Text);
+                port = Utils.ResolvePort(PortBox.Text);
+            }
+            catch (Exception)
+            {
+                AddLog("Invalid IP or Port");
+                return;
+            }
+            if (KeyBox.Text.Length == 0)
+            {
+                AddLog("Key is empty");
+                return;
+            }
 
-            ICryptoTransform cTransform = rDel.CreateEncryptor();
-            byte[] resultArray = cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
+            m_nick = NickBox.Text.Trim();
+            if (m_nick == "")
+            {
+                AddLog("Nick is empty");
+                return;
+            }
 
-            return Convert.ToBase64String(resultArray, 0, resultArray.Length);
-        }
-
-        public string Decrypt(string toDecrypt, string key)
-        {
-            byte[] keyArray = UTF8Encoding.UTF8.GetBytes(key);
-            byte[] toEncryptArray = Convert.FromBase64String(toDecrypt);
-
-            RijndaelManaged rDel = new RijndaelManaged();
-            rDel.Key = keyArray;
-            rDel.Mode = CipherMode.ECB;
-            rDel.Padding = PaddingMode.PKCS7;
-
-            ICryptoTransform cTransform = rDel.CreateDecryptor();
-            byte[] resultArray = cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
-
-            return UTF8Encoding.UTF8.GetString(resultArray);
-        }
-
-        public string[] parseData(string rawdata)
-        {
-            string first = Decrypt(rawdata, key);
-            string[] tmpsplit = first.Split(new String[] { "|" }, StringSplitOptions.None);
-            string[] result = new string[2];
-            result[0] = tmpsplit[0];
-            result[1] = Decrypt(tmpsplit[1], key);
-            return result;
-        }
-
-        public byte[] parseMsg(string cmd, string msg)
-        {
-            return str2bytes(Encrypt(string.Format("{0}|{1}", cmd, Encrypt(msg, key)), key));
-        }
-
-        public byte[] str2bytes(string before)
-        {
-            return Encoding.UTF8.GetBytes(before);
+            //Go
+            DoConnect(ip, port);
         }
 
         #endregion
 
         #region UI Helper
-
-        public void makeSend(bool on)
+        public void ClearMessageArea()
+        {
+            messageArea.Document.Blocks.Clear();
+        }
+        public void SetSendUI(bool enabled)
         {
             this.Dispatcher.Invoke(new Action(() =>
                 {
-                    SendButton.IsEnabled = on;
-                    sendBox.IsEnabled = on;
+                    SendButton.IsEnabled = enabled;
+                    sendBox.IsEnabled = enabled;
                 }));
         }
 
-        public void makeConnect(ConnectStatus flag)
+        public void SetUI(UIState flag)
         {
+            m_UIState = flag;
             this.Dispatcher.Invoke(new Action(() =>
                 {
                     switch (flag)
                     {
-                        case ConnectStatus.Connect:
+                        case UIState.Idle:
+                            //Title
+                            TitleTextBlock.Text = m_WndTitle;
+
+                            //UI
                             ConnectButton.Content = "Connect";
                             ConnectButton.IsEnabled = true;
 
@@ -219,15 +196,17 @@ namespace SSC_Client
                             NickBox.IsEnabled = true;
                             KeyBox.IsEnabled = true;
 
-                            messageArea.Width = 460;
-                            sendBox.Width = 460;
+                            messageArea.Width = sendBox.Width = 460;
                             ConnectButton.Margin = new Thickness(479, 334, 0, 0);
 
-                            //Title
-                            TitleTextBlock.Text = programTitle;
+                            SetSendUI(false);
 
                             break;
-                        case ConnectStatus.Disconnect:
+                        case UIState.Connected:
+                            //Title
+                            TitleTextBlock.Text = string.Format("{0} @ {1} : {2}", m_nick, IPBox.Text, PortBox.Text);
+
+                            //UI
                             ConnectButton.Content = "Disconnect";
                             ConnectButton.IsEnabled = true;
 
@@ -240,11 +219,11 @@ namespace SSC_Client
                             sendBox.Width = 660;
                             ConnectButton.Margin = new Thickness(479, 435, 0, 0);
 
-                            //Title
-                            TitleTextBlock.Text = string.Format("{0} @ {1} : {2}", nickname, IPBox.Text, PortBox.Text);
+                            SetSendUI(true);
 
                             break;
-                        case ConnectStatus.Working:
+                        case UIState.Connecting:
+                        case UIState.Disconnecting:
                             ConnectButton.Content = "Wait...";
                             ConnectButton.IsEnabled = false;
 
@@ -252,21 +231,20 @@ namespace SSC_Client
                             PortBox.IsEnabled = false;
                             NickBox.IsEnabled = false;
                             KeyBox.IsEnabled = false;
+
+                            SetSendUI(false);
                             break;
                         default:
-                            break;
+                            throw new NotImplementedException("Unknown UI State");
                     }
                 }));
         }
 
-        public void AddMessage(string msg, bool self = false)
+        public void AddMessage(string name, string msg, bool self = false)
         {
-            string _name = msg.Substring(0, msg.IndexOf(':', 0, msg.Length));
-            string _msg = msg.Substring(msg.IndexOf(':', 0, msg.Length) + 1);
-
             //@ detect
             bool at = false;
-            if (_msg.Contains("@" + nickname))
+            if (msg.Contains("@" + m_nick))
             {
                 at = true;
             }
@@ -275,15 +253,15 @@ namespace SSC_Client
             this.Dispatcher.Invoke(new Action(() =>
             {
 
-                Run fl = new Run(string.Format("{0} {1}", _name, DateTime.Now.ToString("hh:mm:ss")));
-                Run r = new Run(_msg);
+                Run fl = new Run(string.Format("{0} {1}", name, DateTime.Now.ToString("hh:mm:ss")));
+                Run r = new Run(msg);
 
                 if (self)
                 {
                     //add Name part
                     Paragraph paragraph = new Paragraph();
                     paragraph.Margin = new Thickness(3, 6, 0, 3);
-                    paragraph.Foreground = selfNameColor;
+                    paragraph.Foreground = Colors.Green;
                     paragraph.Inlines.Add(fl);
                     messageArea.Document.Blocks.Add(paragraph);
 
@@ -298,7 +276,7 @@ namespace SSC_Client
                     //add Name part
                     Paragraph paragraph = new Paragraph();
                     paragraph.Margin = new Thickness(3, 6, 0, 3);
-                    paragraph.Foreground = otherNameColor;
+                    paragraph.Foreground = Colors.DeepBlue;
                     paragraph.Inlines.Add(fl);
                     messageArea.Document.Blocks.Add(paragraph);
 
@@ -307,7 +285,7 @@ namespace SSC_Client
                     paragraph.Margin = new Thickness(3, 0, 0, 6);
                     if (at)
                     {
-                        r.Background = atBackgroundColor;
+                        r.Background = Colors.BrightYellow;
                     }
                     paragraph.Inlines.Add(r);
                     messageArea.Document.Blocks.Add(paragraph);
@@ -316,27 +294,27 @@ namespace SSC_Client
                 //flash notice
                 if (!SSC_Window.IsFocused)
                 {
-                    flashTaskBar(wpfHwnd, falshType.FLASHW_TIMERNOFG);
+                    FlashTaskBar(m_wpfHwnd, falshType.FLASHW_TIMERNOFG);
                 }
             }));
 
         }
 
-        public void addLog(string msg)
+        public void AddLog(string msg)
         {
             this.Dispatcher.Invoke(new Action(() =>
             {
                 Paragraph paragraph = new Paragraph();
                 Run r = new Run(msg);
                 paragraph.Margin = new Thickness(3, 3, 0, 0);
-                paragraph.Foreground = softRed;
+                paragraph.Foreground = Colors.SoftRed;
                 paragraph.Inlines.Add(r);
                 messageArea.Document.Blocks.Add(paragraph);
 
                 //flash notice
                 if (!SSC_Window.IsFocused)
                 {
-                    flashTaskBar(wpfHwnd, falshType.FLASHW_TIMERNOFG);
+                    FlashTaskBar(m_wpfHwnd, falshType.FLASHW_TIMERNOFG);
                 }
             }));
         }
@@ -365,7 +343,7 @@ namespace SSC_Client
             FLASHW_TIMERNOFG = FLASHW_TRAY | FLASHW_PARAM2  //未激活时闪烁任务栏直到发送停止标志或者窗体被激活，停止后高亮
         }
 
-        public static bool flashTaskBar(IntPtr hWnd, falshType type)
+        public static bool FlashTaskBar(IntPtr hWnd, falshType type)
         {
             FLASHWINFO fInfo = new FLASHWINFO();
             fInfo.cbSize = Convert.ToUInt32(Marshal.SizeOf(fInfo));
@@ -378,337 +356,105 @@ namespace SSC_Client
 
         #endregion
 
-        #region Network
-
-        private void ConnectButton_Click(object sender, RoutedEventArgs e)
+        public void DoDisconnect()
         {
-            if ((string)ConnectButton.Content == "Disconnect")
+            SetUI(UIState.Disconnecting);
+            m_tcp.Shutdown();
+        }
+
+        public void DoConnect(IPAddress ip, int port)
+        {
+            SetUI(UIState.Connecting);
+            AddLog("Connecting to Host...");
+            m_tcp = new(ip, port, KeyBox.Text);
+            m_tcp.ReceiveTimeout = 3000;  // will set to 0 after setup
+            m_tcp.BeginConnect(() =>
             {
-                makeConnect(ConnectStatus.Working);
+                AddLog("Connected");
+                Task.Run(MsgLoop);
+                Task.Run(SetupWorker);
+            },
+            (exc) =>
+            {
+                AddLog($"Connect Failed ({exc.Message})");
+                m_tcp.Dispose();
+                SetUI(UIState.Idle);
+            });
+        }
 
-                Thread t = new Thread(() =>
+        public void SetupWorker() // session setup after connected
+        {
+            AddLog($"Setting nickname to \"{m_nick}\"...");
+            m_tcp.Send(new(MsgType.NICK, new[] { m_nick }));
+        }
+
+        public void MsgLoop()
+        {
+            try
+            {
+                foreach (Message msg in m_tcp.ReadNext())
                 {
-                    isDisconnecting = true;
-                    s.Dispose();
-
-                    while (true)
+                    switch (msg.Type)
                     {
-                        Thread.Sleep(1500);
-                        if (!isDisconnecting)
-                        {
-                            addLog("Disconnected");
-                            makeConnect(ConnectStatus.Connect);
+                        case MsgType.HELLO:
                             break;
-                        }
-
-                    }
-
-                    //free key
-                    key = null;
-                    return;
-                });
-                t.IsBackground = true;
-                t.Start();
-                return;
-            }
-
-            IPAddress ip;
-            int port;
-
-            if (!IPAddress.TryParse(IPBox.Text, out ip))
-            {
-                try
-                {
-                    ip = Dns.GetHostEntry(IPBox.Text).AddressList[0];
-                    Console.WriteLine(ip.ToString());
-                }
-                catch
-                {
-                    addLog("Host IP/Domain Invalid");
-                    return;
-                }
-
-            }
-
-            if (Convert.ToInt32(PortBox.Text) > 65535 || Convert.ToInt32(PortBox.Text) < 1)
-            {
-                addLog("Port Invalid");
-                return;
-            }
-            else
-            {
-                port = Convert.ToInt32(PortBox.Text);
-            }
-
-
-            if (!(KeyBox.Text.Length == 16 || KeyBox.Text.Length == 24 || KeyBox.Text.Length == 32))
-            {
-                addLog("AES Key must be either 16/24/32 bytes");
-                return;
-            }
-            else
-            {
-                key = KeyBox.Text;
-            }
-
-
-
-            if (NickBox.Text.Trim() == "")
-            {
-                addLog("Nickname is nessesary");
-                return;
-            }
-            else
-            {
-                nickname = NickBox.Text.Trim();
-            }
-            //All Green and start connect
-            makeConnect(ConnectStatus.Working);
-
-            isDisconnecting = false;
-
-            ConnectHandler(ip, port);
-        }
-
-        public void ConnectHandler(IPAddress ip, int port)
-        {
-            try
-            {
-                addLog("Connecting to Host...");
-                IPEndPoint iep = new IPEndPoint(ip, port);
-
-                s = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                s.BeginConnect(
-                    new IPEndPoint(ip,Convert.ToInt32(PortBox.Text)),
-                    new AsyncCallback(connectEnd),
-                    s);
-            }
-            catch (Exception ex)
-            {
-                s.Dispose();
-                key = null;
-                addLog("Unknown Exception Occured");
-                MessageBox.Show(ex.Message);
-                makeConnect(ConnectStatus.Connect);
-            }
-        }
-
-        public void connectEnd(IAsyncResult iars)
-        {
-            Socket end = (Socket)iars.AsyncState;
-            try
-            {
-                end.EndConnect(iars);
-                s = end;
-                addLog("Connected");
-                presetThread = new Thread(() =>
-                {
-                    presetHandler();
-                });
-                presetThread.IsBackground = true;
-                presetThread.Start();
-            }
-            catch (SocketException)
-            {
-                s.Dispose();
-                key = null;
-                addLog("Can't reach Host");
-                makeConnect(ConnectStatus.Connect);
-            }
-            catch (Exception ex)
-            {
-                s.Dispose();
-                key = null;
-                addLog("Unknown Exception Occured");
-                MessageBox.Show(ex.Message);
-                makeConnect(ConnectStatus.Connect);
-            }
-        }
-
-        public void presetHandler() //set nickname etc.
-        {
-            try
-            {
-                addLog("Setting Nickname to \"" + nickname + "\"...");
-                byte[] buffer = new byte[102400];
-                Thread temp = new Thread(() =>
-                {
-                    Thread.Sleep(500);
-                    s.Send(parseMsg("NICK", nickname));
-                });
-                temp.IsBackground = true;
-                temp.Start();
-                s.ReceiveTimeout = 3000;
-                int recvLength = s.Receive(buffer);
-                if (recvLength != 0)
-                {
-                    string tmp = Encoding.UTF8.GetString(buffer, 0, recvLength);
-                    string[] data = parseData(tmp);
-
-                    if (data[0] == "INFO" && data[1] == "OK")
-                    {
-                        addLog("Nickname set succeed");
-                        s.ReceiveTimeout = 0;
-                        makeConnect(ConnectStatus.Disconnect);
-                        makeSend(true);
-
-                        recvThread = new Thread(() =>
-                        {
-                            RecvHandler();
-                        });
-
-                        recvThread.IsBackground = true;
-                        recvThread.Start();
-                    }
-                    else
-                    {
-                        key = null;
-                        addLog(data[1]);
-                        s.Dispose();
-                        addLog("Disconnected");
-                        makeConnect(ConnectStatus.Connect);
-                        return;
-                    }
-                }
-                else
-                {
-                    key = null;
-                    addLog("Failed,Maybe Connection issue or AES Key mismatch (Err Code 1)");
-                    s.Dispose();
-                    addLog("Disconnected");
-                    makeConnect(ConnectStatus.Connect);
-                    return;
-                }
-            }
-            catch (SocketException)
-            {
-                key = null;
-                addLog("Failed,Maybe Connection issue or AES Key mismatch (Err Code 2)");
-                s.Dispose();
-                addLog("Disconnected");
-                makeConnect(ConnectStatus.Connect);
-                return;
-            }
-            catch (Exception ex)
-            {
-                key = null;
-                addLog("Failed,Maybe SSC protocol version mismatch");
-                s.Dispose();
-                addLog("Disconnected");
-                MessageBox.Show(ex.Message);
-                makeConnect(ConnectStatus.Connect);
-            }
-        }
-
-        public void RecvHandler()
-        {
-            byte[] recvbuffer;
-            string[] data;
-
-            try
-            {
-                while (true)
-                {
-                    recvbuffer = new byte[102400];
-                    int receiveLength = s.Receive(recvbuffer);
-                    if (receiveLength != 0)
-                    {
-                        string tmp = Encoding.UTF8.GetString(recvbuffer, 0, receiveLength);
-                        //strip packet
-                        string[] packets = tmp.Split(new String[] { "\r\n" }, StringSplitOptions.None);
-                        for (int i = 0; i < packets.Length; i++)
-                        {
-                            if (packets[i] == "")
+                        case MsgType.KEY:
+                            break;
+                        case MsgType.NICK:
+                            if (msg.GetParam<string>(0) == "OK")
                             {
-                                continue;
+                                AddLog("Nickname OK");
+                                m_tcp.ReceiveTimeout = 0;
+                                SetUI(UIState.Connected);
                             }
-                            data = parseData(packets[i]);
-                            if (data[0] == "MSG")
+                            else
                             {
-                                AddMessage(data[1]);
+                                AddLog(msg.GetParam<string>(0));
+                                m_tcp.Shutdown();
                             }
-                        }
-                    }
-                    else
-                    {
-                        if (!isDisconnecting)
-                        {
-                            addLog("Lost connection with Host");
-                            makeConnect(ConnectStatus.Connect);
-                        }
-                        else
-                        {
-                            isDisconnecting = false;
-                        }
-                        makeSend(false);
-                        return;
+                            break;
+                        case MsgType.MSG:
+                            AddMessage(msg.GetParam<string>(0), msg.GetParam<string>(1));
+                            break;
+                        case MsgType.SYS:
+                            AddLog(msg.GetParam<string>(0));
+                            break;
+                        default:
+                            break;
                     }
                 }
-            }
-            catch (SocketException)
-            {
-                if (!isDisconnecting)
-                {
-                    addLog("Lost connection with Host");
-                    makeConnect(ConnectStatus.Connect);
-                }
-                else
-                {
-                    isDisconnecting = false;
-                }
-                makeSend(false);
-                return;
             }
             catch (Exception ex)
             {
-                if (!isDisconnecting)
+                AddLog($"{ex.Message}");
+            }
+            finally
+            {
+                if (m_UIState != UIState.Disconnecting)
                 {
-                    addLog("Unknown Exception Occured");
-                    MessageBox.Show(ex.ToString());
-                    makeConnect(ConnectStatus.Connect);
+                    AddLog("Connection Lost");
                 }
-                else
-                {
-                    isDisconnecting = false;
-                }
-                makeSend(false);
-                return;
+                m_tcp.Dispose();
+                SetUI(UIState.Idle);
+                AddLog("Disconeccted");
             }
         }
 
         public void Sendmsg()
         {
-            //Send Button
+            if (sendBox.Text == "") return;
+
             try
             {
-                if (sendBox.Text == "")
-                {
-                    return;
-                }
-                s.Send(parseMsg("MSG", sendBox.Text));
-
-                AddMessage(string.Format("{0}:{1}", nickname, sendBox.Text), true);
+                m_tcp.Send(new(MsgType.MSG, sendBox.Text));
+                AddMessage(m_nick, sendBox.Text, true);
                 sendBox.Text = "";
             }
-            catch (Exception)
+            catch
             {
-                if (!isDisconnecting)
-                {
-                    addLog("Lost connection with Host,Your last message may lose");
-                    makeConnect(ConnectStatus.Connect);
-                }
-                else
-                {
-                    isDisconnecting = false;
-                }
-                makeSend(false);
-                return;
+                //ignore
             }
         }
-
-
-
-        #endregion
-
+        
     }
 }

@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>b59be219-512e-4efe-940b-076b68b97d68</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Common</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Cipher\AES256GCM.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Log\Logger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Network\TCPClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Network\Utils.cs" />
+    <Compile Include="..\Common\CLI\Secret.cs" />
+    <Compile Include="..\Common\Network\Message.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Network\TCPServer.cs" />
+  </ItemGroup>
+</Project>

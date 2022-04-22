@@ -12,4 +12,6 @@
     <PackageReference Include="MessagePackAnalyzer" Version="2.3.85" />
   </ItemGroup>
 
+  <Import Project="..\Common\Common.projitems" Label="Shared" />
+
 </Project>
