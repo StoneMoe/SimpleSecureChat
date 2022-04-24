@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="2.3.85" />
     <PackageReference Include="MessagePackAnalyzer" Version="2.3.85" />
+    <PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
   </ItemGroup>
 
   <Import Project="..\Common\Common.projitems" Label="Shared" />

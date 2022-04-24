@@ -17,22 +17,29 @@ Simple Secure Chat use MessagePack for data serialization
 | Params | object[] | params   |
 
 ### Message Type
-* 0x00 HELLO: Session key exchange
-* 0x01 KEY: session key exchange message
-  * Param0: EECDH Key
+* 0x00 HELLO: Certificate
+  * Client
+    * NoParam
+  * Server
+    * Param0: byte[] ECDSA X.509 Certificate, public key only
+* 0x01 KEY: session key exchange
+  * Client
+    * Param0: byte[] BCRYPT_ECDH_PUBLIC_P521 blob
+  * Server
+    * NoParam
 * 0x02 NICK: Broadcast chat message to everyone
-  * Server:
+  * Server
     * Param0: string result
       * "OK": nickname ok
       * "other text": error message
-  * Client:
+  * Client
     * Param0: string nickname
 * 0x03 MSG: chat message
-  * Server:
+  * Server
     * Param0: string nickname
     * Param1: string messageText
-  * Client:
+  * Client
     * Param0: string messageText
 * 0xA0 SYS: system message
-  * Server:
+  * Server
     * Param0: string messageText

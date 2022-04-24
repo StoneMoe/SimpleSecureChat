@@ -70,8 +70,9 @@ namespace Common.Network
                 {
                     try
                     {
-                        foreach (Message msg in secureClient.ReadNext())
+                        foreach (Message msg in secureClient.Receive())
                         {
+                            Logger.Debug($"< {secureClient} {msg}");
                             msgHandler(secureClient, msg);
                         }
                     }

@@ -1,10 +1,17 @@
-﻿using ChatClient.Visual;
+﻿using ChatClient;
+using ChatClient.Model;
+using ChatClient.Visual;
+using Common.Cipher;
 using Common.Network;
+using SQLite;
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,11 +28,12 @@ namespace SSC_Client
     public partial class MainWindow : Window
     {
         TCPClient m_tcp;
-
-        string m_nick;
+        string m_nick = "";
 
         UIState m_UIState;
         IntPtr m_wpfHwnd;
+
+        SQLiteConnection m_db;
 
         readonly string m_WndTitle = "Simple Secure Chat";
 
@@ -77,6 +85,10 @@ namespace SSC_Client
             //UI reset
             SetUI(UIState.Idle);
             ClearMessageArea();
+
+            //db init
+            m_db = new SQLiteConnection("trusted.db");
+            m_db.CreateTable<Server>();
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
@@ -95,11 +107,11 @@ namespace SSC_Client
                 sw.Write(System.Windows.Markup.XamlWriter.Save(messageArea.Document).Replace("<Paragraph", "<br><span").Replace("</Paragraph>", "</span>"));
                 sw.Close();
                 fs.Close();
-                AddLog("Chat log saved to Desktop");
+                AddStatus("Chat log saved to Desktop");
             }
             catch (Exception)
             {
-                AddLog("Chat log save failed");
+                AddStatus("Chat log save failed");
             }
 
         }
@@ -126,38 +138,39 @@ namespace SSC_Client
             //Disconnect
             if (m_UIState == UIState.Connected)
             {
-                DoDisconnect();
+                DoDisconnect(autoIdle: false);
                 return;
             }
 
             //Connect
-            IPAddress ip;
+            string host;
             int port;
             try
             {
-                ip = Utils.Resolve(IPBox.Text);
-                port = Utils.ResolvePort(PortBox.Text);
+                NetUtils.Resolve(HostBox.Text);
+                host = HostBox.Text;
+                port = NetUtils.ResolvePort(PortBox.Text);
             }
             catch (Exception)
             {
-                AddLog("Invalid IP or Port");
+                AddStatus("Invalid Host or Port");
                 return;
             }
             if (KeyBox.Text.Length == 0)
             {
-                AddLog("Key is empty");
+                AddStatus("Key is empty");
                 return;
             }
 
             m_nick = NickBox.Text.Trim();
             if (m_nick == "")
             {
-                AddLog("Nick is empty");
+                AddStatus("Nick is empty");
                 return;
             }
 
             //Go
-            DoConnect(ip, port);
+            DoConnect(host, port);
         }
 
         #endregion
@@ -191,7 +204,7 @@ namespace SSC_Client
                             ConnectButton.Content = "Connect";
                             ConnectButton.IsEnabled = true;
 
-                            IPBox.IsEnabled = true;
+                            HostBox.IsEnabled = true;
                             PortBox.IsEnabled = true;
                             NickBox.IsEnabled = true;
                             KeyBox.IsEnabled = true;
@@ -204,13 +217,13 @@ namespace SSC_Client
                             break;
                         case UIState.Connected:
                             //Title
-                            TitleTextBlock.Text = string.Format("{0} @ {1} : {2}", m_nick, IPBox.Text, PortBox.Text);
+                            TitleTextBlock.Text = string.Format("{0} @ {1} : {2}", m_nick, HostBox.Text, PortBox.Text);
 
                             //UI
                             ConnectButton.Content = "Disconnect";
                             ConnectButton.IsEnabled = true;
 
-                            IPBox.IsEnabled = false;
+                            HostBox.IsEnabled = false;
                             PortBox.IsEnabled = false;
                             NickBox.IsEnabled = false;
                             KeyBox.IsEnabled = false;
@@ -227,7 +240,7 @@ namespace SSC_Client
                             ConnectButton.Content = "Wait...";
                             ConnectButton.IsEnabled = false;
 
-                            IPBox.IsEnabled = false;
+                            HostBox.IsEnabled = false;
                             PortBox.IsEnabled = false;
                             NickBox.IsEnabled = false;
                             KeyBox.IsEnabled = false;
@@ -300,7 +313,7 @@ namespace SSC_Client
 
         }
 
-        public void AddLog(string msg)
+        public void AddSvrMsg(string msg)
         {
             this.Dispatcher.Invoke(new Action(() =>
             {
@@ -308,6 +321,28 @@ namespace SSC_Client
                 Run r = new Run(msg);
                 paragraph.Margin = new Thickness(3, 3, 0, 0);
                 paragraph.Foreground = Colors.SoftRed;
+                paragraph.FontStyle = FontStyles.Italic;
+                paragraph.Inlines.Add(r);
+                messageArea.Document.Blocks.Add(paragraph);
+
+                //flash notice
+                if (!SSC_Window.IsFocused)
+                {
+                    FlashTaskBar(m_wpfHwnd, falshType.FLASHW_TIMERNOFG);
+                }
+            }));
+        }
+
+
+        public void AddStatus(string msg)
+        {
+            this.Dispatcher.Invoke(new Action(() =>
+            {
+                Paragraph paragraph = new Paragraph();
+                Run r = new Run(msg);
+                paragraph.Margin = new Thickness(3, 3, 0, 0);
+                paragraph.Foreground = Colors.Gray;
+                paragraph.FontStyle = FontStyles.Italic;
                 paragraph.Inlines.Add(r);
                 messageArea.Document.Blocks.Add(paragraph);
 
@@ -356,69 +391,168 @@ namespace SSC_Client
 
         #endregion
 
-        public void DoDisconnect()
+        public void DoDisconnect(bool autoIdle = true)
         {
             SetUI(UIState.Disconnecting);
             m_tcp.Shutdown();
+            if (autoIdle)
+            {
+                AddStatus("Disconnected");
+                SetUI(UIState.Idle);
+            }
         }
 
-        public void DoConnect(IPAddress ip, int port)
+        public void DoConnect(string host, int port)
         {
             SetUI(UIState.Connecting);
-            AddLog("Connecting to Host...");
-            m_tcp = new(ip, port, KeyBox.Text);
+            AddStatus("Connecting...");
+            m_tcp = new(host, port, KeyBox.Text);
             m_tcp.ReceiveTimeout = 3000;  // will set to 0 after setup
             m_tcp.BeginConnect(() =>
             {
-                AddLog("Connected");
-                Task.Run(MsgLoop);
                 Task.Run(SetupWorker);
             },
             (exc) =>
             {
-                AddLog($"Connect Failed ({exc.Message})");
-                m_tcp.Dispose();
+                AddStatus($"Connect Failed ({exc.Message})");
                 SetUI(UIState.Idle);
             });
         }
 
+        ManualResetEvent m_fpWndCloseEvent = new ManualResetEvent(false);
+        FingerPrint fpWnd;
+
         public void SetupWorker() // session setup after connected
         {
-            AddLog($"Setting nickname to \"{m_nick}\"...");
-            m_tcp.Send(new(MsgType.NICK, new[] { m_nick }));
+
+            Message? msg;
+            X509Certificate2 serverCert;
+
+            //Client hello for ECC public key
+            m_tcp.Send(new(MsgType.HELLO));
+            msg = m_tcp.ReceiveNext();
+            if (msg == null || msg.Type != MsgType.HELLO)
+            {
+                AddStatus("Session Setup Failed");
+                DoDisconnect();
+                return;
+            }
+
+            try
+            {
+                var certData = msg.GetParam<byte[]>(0);
+                serverCert = X509.Load(certData);
+            }
+            catch (Exception)
+            {
+                AddStatus("Invalid Certificate");
+                DoDisconnect();
+                return;
+            }
+
+            m_fpWndCloseEvent.Reset();
+            Dispatcher.Invoke(() =>
+            {
+                fpWnd = new FingerPrint(this, serverCert);
+                fpWnd.Closed += (object? sender, EventArgs e) =>
+                {
+                    if (fpWnd.trustResult == FingerPrint.TrustResult.Trust)
+                    {
+                        m_db.Insert(new Server() { Host = m_tcp.host, Port = m_tcp.port, SHA1 = serverCert.GetCertHashString() });
+                    }
+                };
+
+                if (m_db.Query<Server>("SELECT * FROM Server WHERE Host = ? AND SHA1 = ?", m_tcp.host, serverCert.GetCertHashString()).Count == 0)
+                {
+                    Dispatcher.Invoke(new Action(() =>
+                    {
+                        fpWnd.ShowDialog();
+                    }));
+                }
+                else
+                {
+                    fpWnd.trustResult = FingerPrint.TrustResult.Trust;
+                }
+                m_fpWndCloseEvent.Set();
+            });
+            m_fpWndCloseEvent.WaitOne();
+
+            if (fpWnd.trustResult == FingerPrint.TrustResult.Cancel)
+            {
+                AddStatus("User Canceled");
+                DoDisconnect();
+                return;
+            }
+
+            //ECDH for session key
+            try
+            {
+                ECDH ecdh = new();
+                m_tcp.Send(new(MsgType.KEY, ecdh.GetPublicKeyBlob()));
+                byte[] newKey = ecdh.DeriveKey(serverCert);
+                m_tcp.UpdateAesKey(newKey);
+
+                //key exchange check
+                msg = m_tcp.ReceiveNext();
+                if (msg != null && msg.Type != MsgType.KEY)
+                {
+                    AddStatus("Key Exchange Failed");
+                    DoDisconnect();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                AddStatus("Key Exchange Failed");
+                AddStatus(ex.ToString());
+                DoDisconnect();
+                return;
+            }
+
+            //acquire nickname
+            try
+            {
+                m_tcp.Send(new(MsgType.NICK, m_nick));
+            }
+            catch (Exception ex)
+            {
+                AddStatus("Nickname Acquire Failed");
+                AddStatus(ex.ToString());
+                DoDisconnect();
+                return;
+            }
+
+            //MsgLoop
+            MsgLoop();
         }
 
         public void MsgLoop()
         {
             try
             {
-                foreach (Message msg in m_tcp.ReadNext())
+                foreach (Message msg in m_tcp.Receive())
                 {
                     switch (msg.Type)
                     {
-                        case MsgType.HELLO:
-                            break;
-                        case MsgType.KEY:
-                            break;
                         case MsgType.NICK:
                             if (msg.GetParam<string>(0) == "OK")
                             {
-                                AddLog("Nickname OK");
                                 m_tcp.ReceiveTimeout = 0;
+                                AddStatus("Connected");
                                 SetUI(UIState.Connected);
                             }
                             else
                             {
-                                AddLog(msg.GetParam<string>(0));
+                                AddSvrMsg(msg.GetParam<string>(0));
                                 DoDisconnect();
-                                return; // exit readNext loop
+                                return;
                             }
                             break;
                         case MsgType.MSG:
                             AddMessage(msg.GetParam<string>(0), msg.GetParam<string>(1));
                             break;
                         case MsgType.SYS:
-                            AddLog(msg.GetParam<string>(0));
+                            AddSvrMsg(msg.GetParam<string>(0));
                             break;
                         default:
                             break;
@@ -427,17 +561,16 @@ namespace SSC_Client
             }
             catch (Exception ex)
             {
-                AddLog(ex.ToString());
+                AddStatus(ex.ToString());
             }
             finally
             {
                 if (m_UIState != UIState.Disconnecting)
                 {
-                    AddLog("Connection Lost");
+                    AddStatus("Connection Lost");
                 }
-                m_tcp.Dispose();
+                AddStatus("Disconnected");
                 SetUI(UIState.Idle);
-                AddLog("Disconeccted");
             }
         }
 
@@ -448,7 +581,7 @@ namespace SSC_Client
             try
             {
                 m_tcp.Send(new(MsgType.MSG, sendBox.Text));
-                AddMessage(m_nick, sendBox.Text, true);
+                AddMessage(m_nick, sendBox.Text, self: true);
                 sendBox.Text = "";
             }
             catch

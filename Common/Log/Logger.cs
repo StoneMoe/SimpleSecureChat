@@ -8,11 +8,17 @@ namespace Common.Log
     {
         public static void Error(string format, params object[] args)
         {
+            Console.BackgroundColor = ConsoleColor.DarkRed;
+            Console.ForegroundColor = ConsoleColor.White;
             Write("ERRO", format, args);
+            Console.ResetColor();
         }
         public static void Warn(string format, params object[] args)
         {
+            Console.BackgroundColor = ConsoleColor.DarkYellow;
+            Console.ForegroundColor = ConsoleColor.White;
             Write("WARN", format, args);
+            Console.ResetColor();
         }
         public static void Info(string format, params object[] args)
         {
@@ -21,7 +27,9 @@ namespace Common.Log
 
         public static void Debug(string format, params object[] args)
         {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
             Write("DBUG", format, args);
+            Console.ResetColor();
         }
 
         private static string Prefix(string level)

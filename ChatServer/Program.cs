@@ -1,23 +1,51 @@
-﻿using Common.Log;
+﻿using Common.Cipher;
+using Common.Log;
 using Common.Network;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
 namespace ChatServer
 {
     internal class Program
     {
+        static X509Certificate2 serverCert;
+
         static void Main(string[] args)
         {
+            try
+            {
+                serverCert = X509.LoadDefault();
+            }
+            catch
+            {
+                Logger.Error("Failed to load certificate, generating self-signed certificate...");
+                X509.GenerateDefault();
+                Environment.Exit(0);
+            }
+
+            if (serverCert.GetECDsaPrivateKey() != null)
+            {
+                Logger.Info($"Loaded X.509 {serverCert.GetCertHashString()}");
+            }
+            else
+            {
+                Logger.Error("Invalid ECDSA PKCS#12 Certificate");
+                Environment.Exit(-1);
+            }
+
             TCPServer tcp = new("0.0.0.0", 12344, "SSCv3_Default_Key");
 
             tcp.Listen((exc) =>
             {
-                Logger.Info("Listen failed ({0})", exc.Message);
+                Logger.Error("Listen failed ({0})", exc.Message);
                 Environment.Exit(-1);
             });
 
             tcp.AcceptLoop(
                 (client) => Logger.Info("{0} Connected", client),
-                (client) => {
+                (client) =>
+                {
                     Logger.Info("{0} Disconnected", client);
                     ClientMgr.Unregister(client);
                     client.Dispose();
@@ -27,11 +55,11 @@ namespace ChatServer
                 {
                     if (socket != null && client != null)
                     {
-                        Logger.Info("Error from {0} ({1})", client, exc.Message);
+                        Logger.Error($"{client} Error occured. \n{exc})");
                     }
                     else
                     {
-                        Logger.Info("Error on accept ({0})", exc.Message);
+                        Logger.Error("Error on accept ({0})", exc.Message);
                     }
                 }
             );
@@ -152,12 +180,15 @@ namespace ChatServer
                     ClientMgr.Broadcast(new(MsgType.MSG, nick, text), client);
 
                     break;
-                case MsgType.SYS:
-                    Logger.Error("{0} sending SYS({1}) which is not support on server side", client, msg.Params);
-                    break;
                 case MsgType.HELLO:
+                    client.Send(new(MsgType.HELLO, serverCert.Export(X509ContentType.Cert)));
                     break;
                 case MsgType.KEY:
+                    ECDH ecdh = new ECDH(serverCert);
+                    byte[] keyData = msg.GetParam<byte[]>(0);
+                    byte[]? newKey = ecdh.DeriveKey(keyData);
+                    client.UpdateAesKey(newKey);
+                    client.Send(new(MsgType.KEY));
                     break;
                 default:
                     Logger.Error("{0} sending unknown message type({1})", client, msg.Type);

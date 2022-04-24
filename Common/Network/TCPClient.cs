@@ -11,25 +11,23 @@ namespace Common.Network
 {
     public class TCPClient : IDisposable
     {
-        readonly Aes256Gcm _aes;
-
-        Socket _socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        string _host;
-        int _port;
-
+        public string host;
+        public int port;
         public Dictionary<string, object> Storage = new();
 
+        Aes256Gcm _aes;
+        Socket _socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
         public TCPClient(string host, int port, string aesPwd)
         {
-            _host = host;
-            _port = port;
+            this.host = host;
+            this.port = port;
             _aes = new Aes256Gcm(aesPwd);
         }
         public TCPClient(IPAddress ip, int port, string aesPwd)
         {
-            _host = ip.ToString();
-            _port = port;
+            host = ip.ToString();
+            this.port = port;
             _aes = new Aes256Gcm(aesPwd);
         }
 
@@ -38,10 +36,10 @@ namespace Common.Network
             IPEndPoint? ipEndPoint = clientSocket.RemoteEndPoint as IPEndPoint;
             if (ipEndPoint == null)
                 throw new Exception("Invalid IPEndPoint");
-            
-            _host = ipEndPoint.Address.ToString();
-            _port = ipEndPoint.Port;
-            
+
+            host = ipEndPoint.Address.ToString();
+            port = ipEndPoint.Port;
+
             _socket = clientSocket;
             _aes = aesInstance;
         }
@@ -51,7 +49,7 @@ namespace Common.Network
         // error delegate is called if the connection fails.
         public void BeginConnect(Action success, Action<Exception> exception)
         {
-            _socket.BeginConnect(_host, _port, (ar) =>
+            _socket.BeginConnect(host, port, (ar) =>
             {
                 try
                 {
@@ -65,9 +63,9 @@ namespace Common.Network
             }, null);
         }
 
-        // readNext method is called by the client to read the next message from the server
+        // Receive method is called by the client to iterate messages recv from the server
         // and parse it into a Message object.
-        public IEnumerable<Message> ReadNext()
+        public IEnumerable<Message> Receive()
         {
             while (true)
             {
@@ -100,8 +98,20 @@ namespace Common.Network
             }
         }
 
+        // get next message from iterator
+        public Message? ReceiveNext()
+        {
+            IEnumerator<Message> iter = Receive().GetEnumerator();
+            if (iter.MoveNext())
+            {
+                return iter.Current;
+            }
+            return null;
+        }
+
         public void Send(Message message)
         {
+            Logger.Debug($"> {this} {message}");
             byte[] data = MessagePackSerializer.Serialize(message);
             byte[] encryptedData = _aes.Encrypt(data);
             byte[] lengthHeader = BitConverter.GetBytes(encryptedData.Length);
@@ -128,8 +138,12 @@ namespace Common.Network
 
         public override string ToString()
         {
-            return $"{_host}:{_port}";
+            return $"{host}:{port}";
         }
 
+        public void UpdateAesKey(byte[] key)
+        {
+            _aes = new Aes256Gcm(key);
+        }
     }
 }

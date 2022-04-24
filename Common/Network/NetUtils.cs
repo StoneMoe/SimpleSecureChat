@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Common.Network
 {
-    internal class Utils
+    internal class NetUtils
     {
         // resolve domain string or ip string to IPAddress
         public static IPAddress Resolve(string host)
