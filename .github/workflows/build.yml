@@ -17,17 +17,15 @@ jobs:
       - name: Build server
         run: msbuild  /t:ChatServer:publish /p:Configuration=Release /p:TargetFramework=net6.0-windows /p:RuntimeIdentifier=win10-x64 /p:SelfContained=false /verbosity:minimal
       - name: Archive client
-        uses: thedoctor0/zip-release@master
+        uses: thedoctor0/zip-release@0.6.2
         with:
-          type: zip
           filename: client-net6.0-windows.zip
-          path: SimpleSecureChat/ChatClient/bin/Release/net6.0-windows/win10-x64/publish
+          path: 'SimpleSecureChat/ChatClient/bin/Release/net6.0-windows/win10-x64/publish'
       - name: Archive server
-        uses: thedoctor0/zip-release@master
+        uses: thedoctor0/zip-release@0.6.2
         with:
-          type: 'zip'
           filename: server-net6.0-windows.zip
-          path: SimpleSecureChat/ChatServer/bin/Release/net6.0-windows/win10-x64/publish
+          path: 'SimpleSecureChat/ChatServer/bin/Release/net6.0-windows/win10-x64/publish'
       - name: Client artifact
         uses: actions/upload-artifact@v2
         with:
