@@ -15,7 +15,7 @@ jobs:
       - name: Build client
         run: msbuild  /t:ChatClient:publish /p:Configuration=Release /p:TargetFramework=net6.0-windows /p:RuntimeIdentifier=win10-x64 /p:SelfContained=false /verbosity:minimal
       - name: Build server
-        run:msbuild  /t:ChatServer:publish /p:Configuration=Release /p:TargetFramework=net6.0-windows /p:RuntimeIdentifier=win10-x64 /p:SelfContained=false /verbosity:minimal
+        run: msbuild  /t:ChatServer:publish /p:Configuration=Release /p:TargetFramework=net6.0-windows /p:RuntimeIdentifier=win10-x64 /p:SelfContained=false /verbosity:minimal
       - name: Archive client
         uses: thedoctor0/zip-release@master
         with:
