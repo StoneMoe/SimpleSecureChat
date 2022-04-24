@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32414.318
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatClient", "ChatClient\ChatClient.csproj", "{D41625F9-AAAA-4172-8926-5B7155203FFA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatServer", "ChatServer\ChatServer.csproj", "{F926106D-3106-458A-A34E-B26E7EF9F2DF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A0912039-B2FB-4B4E-9E8E-EB7A6D8490E4}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+		PROTOCOL.md = PROTOCOL.md
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Common", "Common\Common.shproj", "{B59BE219-512E-4EFE-940B-076B68B97D68}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Common\Common.projitems*{b59be219-512e-4efe-940b-076b68b97d68}*SharedItemsImports = 13
+		Common\Common.projitems*{d41625f9-aaaa-4172-8926-5b7155203ffa}*SharedItemsImports = 5
+		Common\Common.projitems*{f926106d-3106-458a-a34e-b26e7ef9f2df}*SharedItemsImports = 5
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D41625F9-AAAA-4172-8926-5B7155203FFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D41625F9-AAAA-4172-8926-5B7155203FFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D41625F9-AAAA-4172-8926-5B7155203FFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D41625F9-AAAA-4172-8926-5B7155203FFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F926106D-3106-458A-A34E-B26E7EF9F2DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F926106D-3106-458A-A34E-B26E7EF9F2DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F926106D-3106-458A-A34E-B26E7EF9F2DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F926106D-3106-458A-A34E-B26E7EF9F2DF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {231E1B8A-56FC-4306-AE82-D8B6AEE9EC30}
+	EndGlobalSection
+EndGlobal

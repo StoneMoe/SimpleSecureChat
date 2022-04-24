@@ -1,0 +1,54 @@
+name: SSCBuild
+
+on:
+  pull_request:
+    types: [review_requested, closed]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: microsoft/setup-msbuild@v1.1
+      - name: Nuget restore
+        run: nuget restore
+      - name: Build client
+        run: msbuild  /t:ChatClient:publish /p:Configuration=Release /p:TargetFramework=net6.0-windows /p:RuntimeIdentifier=win10-x64 /p:SelfContained=false /verbosity:minimal
+      - name: Build server
+        run:msbuild  /t:ChatServer:publish /p:Configuration=Release /p:TargetFramework=net6.0-windows /p:RuntimeIdentifier=win10-x64 /p:SelfContained=false /verbosity:minimal
+      - name: Archive client
+        uses: thedoctor0/zip-release@master
+        with:
+          type: zip
+          filename: client-net6.0-windows.zip
+          path: SimpleSecureChat/ChatClient/bin/Release/net6.0-windows/win10-x64/publish
+      - name: Archive server
+        uses: thedoctor0/zip-release@master
+        with:
+          type: 'zip'
+          filename: server-net6.0-windows.zip
+          path: SimpleSecureChat/ChatServer/bin/Release/net6.0-windows/win10-x64/publish
+      - name: Client artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: client-net6.0-windows
+          path: client-net6.0-windows.zip
+      - name: Server artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: server-net6.0-windows
+          path: server-net6.0-windows.zip
+      - name: Release
+        if: github.event.pull_request.merged == true
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Automated release of ${{ github.ref }}
+          draft: false
+          prerelease: false
+          with:
+          files: |
+            client-net6.0-windows.zip
+            server-net6.0-windows.zip
