@@ -19,15 +19,13 @@ jobs:
       - name: Archive client
         uses: thedoctor0/zip-release@master
         with:
-          type: zip
           filename: client-net6.0-windows.zip
-          path: SimpleSecureChat/ChatClient/bin/Release/net6.0-windows/win10-x64/publish
+          path: 'SimpleSecureChat/ChatClient/bin/Release/net6.0-windows/win10-x64/publish'
       - name: Archive server
-        uses: thedoctor0/zip-release@master
+        uses: thedoctor0/zip-release@0.6.2
         with:
-          type: 'zip'
           filename: server-net6.0-windows.zip
-          path: SimpleSecureChat/ChatServer/bin/Release/net6.0-windows/win10-x64/publish
+          path: 'SimpleSecureChat/ChatServer/bin/Release/net6.0-windows/win10-x64/publish'
       - name: Client artifact
         uses: actions/upload-artifact@v2
         with:
