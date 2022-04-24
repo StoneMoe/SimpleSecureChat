@@ -1,16 +1,11 @@
-# Simple Secure Chat
+![banner](docs/banner.jpg?raw=true)
 Setup your own encrypted chat room in seconds, on Windows/macOS/Linux.
 
-## Feature
-- [ ] Pre-shared key Authentication
-- [ ] Server fingerprint identify
-- [ ] Perfect Forward Security
-
 ## Quickstart
-Download server and client executable from [release page](/releases/latest)
+Download server and client executable from [release](releases/latest)
 
 ## Contribute
-You can contribute code directly, or submit issue you found
+You can contribute code directly, or submit issues you found
 
 ## License
 GPL v3
