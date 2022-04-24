@@ -46,10 +46,9 @@ jobs:
           path: ssc_server-net6.0-windows.zip
 
       - name: Release
-        if: github.event.base_ref == 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${GITHUB_REF##*/}
           body: |
             ${GITHUB_REF##*/} (${GITHUB_SHA::7})
           draft: false
