@@ -3,6 +3,7 @@ using ChatClient.Model;
 using ChatClient.Visual;
 using Common.Cipher;
 using Common.Network;
+using Common.Network.Data;
 using SQLite;
 using System;
 using System.Diagnostics;
@@ -27,7 +28,7 @@ namespace SSC_Client
     /// </summary>
     public partial class MainWindow : Window
     {
-        TCPClient m_tcp;
+        NetClient m_net;
         string m_nick = "";
 
         UIState m_UIState;
@@ -79,7 +80,7 @@ namespace SSC_Client
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             //flash notice init
-            WindowInteropHelper wndHelper = new WindowInteropHelper(this);
+            WindowInteropHelper wndHelper = new(this);
             m_wpfHwnd = wndHelper.Handle;
 
             //UI reset
@@ -101,9 +102,9 @@ namespace SSC_Client
             try
             {
                 Console.WriteLine(System.Windows.Markup.XamlWriter.Save(messageArea.Document));
-                FileStream fs = new FileStream(Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\ChatLog_" + DateTime.Now.ToString("yyyy-MM-dd_hh-mm-ss") + ".html", FileMode.Append);
+                FileStream fs = new(Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\ChatLog_" + DateTime.Now.ToString("yyyy-MM-dd_hh-mm-ss") + ".html", FileMode.Append);
 
-                StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
+                StreamWriter sw = new(fs, Encoding.UTF8);
                 sw.Write(System.Windows.Markup.XamlWriter.Save(messageArea.Document).Replace("<Paragraph", "<br><span").Replace("</Paragraph>", "</span>"));
                 sw.Close();
                 fs.Close();
@@ -266,20 +267,20 @@ namespace SSC_Client
             this.Dispatcher.Invoke(new Action(() =>
             {
 
-                Run fl = new Run(string.Format("{0} {1}", name, DateTime.Now.ToString("hh:mm:ss")));
-                Run r = new Run(msg);
+                Run fl = new(string.Format("{0} {1}", name, DateTime.Now.ToString("hh:mm:ss")));
+                Run r = new(msg);
 
                 if (self)
                 {
                     //add Name part
-                    Paragraph paragraph = new Paragraph();
+                    Paragraph paragraph = new();
                     paragraph.Margin = new Thickness(3, 6, 0, 3);
                     paragraph.Foreground = Colors.Green;
                     paragraph.Inlines.Add(fl);
                     messageArea.Document.Blocks.Add(paragraph);
 
                     //add msg part
-                    paragraph = new Paragraph();
+                    paragraph = new();
                     paragraph.Margin = new Thickness(3, 0, 0, 6);
                     paragraph.Inlines.Add(r);
                     messageArea.Document.Blocks.Add(paragraph);
@@ -287,14 +288,14 @@ namespace SSC_Client
                 else
                 {
                     //add Name part
-                    Paragraph paragraph = new Paragraph();
+                    Paragraph paragraph = new();
                     paragraph.Margin = new Thickness(3, 6, 0, 3);
                     paragraph.Foreground = Colors.DeepBlue;
                     paragraph.Inlines.Add(fl);
                     messageArea.Document.Blocks.Add(paragraph);
 
                     //add msg part
-                    paragraph = new Paragraph();
+                    paragraph = new();
                     paragraph.Margin = new Thickness(3, 0, 0, 6);
                     if (at)
                     {
@@ -307,7 +308,7 @@ namespace SSC_Client
                 //flash notice
                 if (!SSC_Window.IsFocused)
                 {
-                    FlashTaskBar(m_wpfHwnd, falshType.FLASHW_TIMERNOFG);
+                    FlashTaskBar(m_wpfHwnd, FlashType.FLASHW_TIMERNOFG);
                 }
             }));
 
@@ -317,8 +318,8 @@ namespace SSC_Client
         {
             this.Dispatcher.Invoke(new Action(() =>
             {
-                Paragraph paragraph = new Paragraph();
-                Run r = new Run(msg);
+                Paragraph paragraph = new();
+                Run r = new(msg);
                 paragraph.Margin = new Thickness(3, 3, 0, 0);
                 paragraph.Foreground = Colors.SoftRed;
                 paragraph.FontStyle = FontStyles.Italic;
@@ -328,7 +329,7 @@ namespace SSC_Client
                 //flash notice
                 if (!SSC_Window.IsFocused)
                 {
-                    FlashTaskBar(m_wpfHwnd, falshType.FLASHW_TIMERNOFG);
+                    FlashTaskBar(m_wpfHwnd, FlashType.FLASHW_TIMERNOFG);
                 }
             }));
         }
@@ -338,8 +339,8 @@ namespace SSC_Client
         {
             this.Dispatcher.Invoke(new Action(() =>
             {
-                Paragraph paragraph = new Paragraph();
-                Run r = new Run(msg);
+                Paragraph paragraph = new();
+                Run r = new(msg);
                 paragraph.Margin = new Thickness(3, 3, 0, 0);
                 paragraph.Foreground = Colors.Gray;
                 paragraph.FontStyle = FontStyles.Italic;
@@ -349,7 +350,7 @@ namespace SSC_Client
                 //flash notice
                 if (!SSC_Window.IsFocused)
                 {
-                    FlashTaskBar(m_wpfHwnd, falshType.FLASHW_TIMERNOFG);
+                    FlashTaskBar(m_wpfHwnd, FlashType.FLASHW_TIMERNOFG);
                 }
             }));
         }
@@ -366,26 +367,26 @@ namespace SSC_Client
         [DllImport("user32.dll")]
         public static extern bool FlashWindowEx(ref FLASHWINFO pwfi);
 
-        public enum falshType : uint
+        public enum FlashType : uint
         {
-            FLASHW_STOP = 0,    //停止闪烁
-            FALSHW_CAPTION = 1,  //只闪烁标题
-            FLASHW_TRAY = 2,   //只闪烁任务栏
-            FLASHW_ALL = 3,     //标题和任务栏同时闪烁
+            FLASHW_STOP = 0,
+            FALSHW_CAPTION = 1,
+            FLASHW_TRAY = 2,
+            FLASHW_ALL = 3,
             FLASHW_PARAM1 = 4,
             FLASHW_PARAM2 = 12,
-            FLASHW_TIMER = FLASHW_TRAY | FLASHW_PARAM1,   //无条件闪烁任务栏直到发送停止标志，停止后高亮
-            FLASHW_TIMERNOFG = FLASHW_TRAY | FLASHW_PARAM2  //未激活时闪烁任务栏直到发送停止标志或者窗体被激活，停止后高亮
+            FLASHW_TIMER = FLASHW_TRAY | FLASHW_PARAM1,
+            FLASHW_TIMERNOFG = FLASHW_TRAY | FLASHW_PARAM2
         }
 
-        public static bool FlashTaskBar(IntPtr hWnd, falshType type)
+        public static bool FlashTaskBar(IntPtr hWnd, FlashType type)
         {
-            FLASHWINFO fInfo = new FLASHWINFO();
+            FLASHWINFO fInfo = new();
             fInfo.cbSize = Convert.ToUInt32(Marshal.SizeOf(fInfo));
             fInfo.hwnd = hWnd;
             fInfo.dwFlags = (uint)type;
             fInfo.uCount = Convert.ToUInt32(5);
-            fInfo.dwTimeout = 1000; //窗口闪烁的频度，毫秒为单位；若该值为0，则为默认图标的闪烁频度
+            fInfo.dwTimeout = 1000;
             return FlashWindowEx(ref fInfo);
         }
 
@@ -394,7 +395,7 @@ namespace SSC_Client
         public void DoDisconnect(bool autoIdle = true)
         {
             SetUI(UIState.Disconnecting);
-            m_tcp.Shutdown();
+            m_net.Disconnect();
             if (autoIdle)
             {
                 AddStatus("Disconnected");
@@ -406,9 +407,9 @@ namespace SSC_Client
         {
             SetUI(UIState.Connecting);
             AddStatus("Connecting...");
-            m_tcp = new(host, port, KeyBox.Text);
-            m_tcp.ReceiveTimeout = 3000;  // will set to 0 after setup
-            m_tcp.BeginConnect(() =>
+            m_net = new(KeyBox.Text);
+            m_net.transport.ReceiveTimeout = 3000;  // will set to 0 after setup
+            m_net.Connect(host, port, () =>
             {
                 Task.Run(SetupWorker);
             },
@@ -419,7 +420,7 @@ namespace SSC_Client
             });
         }
 
-        ManualResetEvent m_fpWndCloseEvent = new ManualResetEvent(false);
+        ManualResetEvent m_fpWndCloseEvent = new(false);
         FingerPrint fpWnd;
 
         public void SetupWorker() // session setup after connected
@@ -429,8 +430,8 @@ namespace SSC_Client
             X509Certificate2 serverCert;
 
             //Client hello for ECC public key
-            m_tcp.Send(new(MsgType.HELLO));
-            msg = m_tcp.ReceiveNext();
+            m_net.Send(new(MsgType.HELLO));
+            msg = m_net.ReceiveNext();
             if (msg == null || msg.Type != MsgType.HELLO)
             {
                 AddStatus("Session Setup Failed");
@@ -458,11 +459,11 @@ namespace SSC_Client
                 {
                     if (fpWnd.trustResult == FingerPrint.TrustResult.Trust)
                     {
-                        m_db.Insert(new Server() { Host = m_tcp.host, Port = m_tcp.port, SHA1 = serverCert.GetCertHashString() });
+                        m_db.Insert(new Server() { Host = m_net.RemoteHost, Port = m_net.RemotePort, SHA1 = serverCert.GetCertHashString() });
                     }
                 };
 
-                if (m_db.Query<Server>("SELECT * FROM Server WHERE Host = ? AND SHA1 = ?", m_tcp.host, serverCert.GetCertHashString()).Count == 0)
+                if (m_db.Query<Server>("SELECT * FROM Server WHERE Host = ? AND SHA1 = ?", m_net.RemoteHost, serverCert.GetCertHashString()).Count == 0)
                 {
                     Dispatcher.Invoke(new Action(() =>
                     {
@@ -488,12 +489,12 @@ namespace SSC_Client
             try
             {
                 ECDH ecdh = new();
-                m_tcp.Send(new(MsgType.KEY, ecdh.GetPublicKeyBlob()));
+                m_net.Send(new(MsgType.KEY, ecdh.GetPublicKeyBlob()));
                 byte[] newKey = ecdh.DeriveKey(serverCert);
-                m_tcp.UpdateAesKey(newKey);
+                m_net.UpdateAesKey(newKey);
 
                 //key exchange check
-                msg = m_tcp.ReceiveNext();
+                msg = m_net.ReceiveNext();
                 if (msg != null && msg.Type != MsgType.KEY)
                 {
                     AddStatus("Key Exchange Failed");
@@ -512,7 +513,7 @@ namespace SSC_Client
             //acquire nickname
             try
             {
-                m_tcp.Send(new(MsgType.NICK, m_nick));
+                m_net.Send(new(MsgType.NICK, m_nick));
             }
             catch (Exception ex)
             {
@@ -530,14 +531,14 @@ namespace SSC_Client
         {
             try
             {
-                foreach (Message msg in m_tcp.Receive())
+                foreach (Message msg in m_net.Receive())
                 {
                     switch (msg.Type)
                     {
                         case MsgType.NICK:
                             if (msg.GetParam<string>(0) == "OK")
                             {
-                                m_tcp.ReceiveTimeout = 0;
+                                m_net.transport.ReceiveTimeout = 0;
                                 AddStatus("Connected");
                                 SetUI(UIState.Connected);
                             }
@@ -580,7 +581,7 @@ namespace SSC_Client
 
             try
             {
-                m_tcp.Send(new(MsgType.MSG, sendBox.Text));
+                m_net.Send(new(MsgType.MSG, sendBox.Text));
                 AddMessage(m_nick, sendBox.Text, self: true);
                 sendBox.Text = "";
             }

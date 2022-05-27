@@ -4,32 +4,29 @@ using System.Net;
 using Common.Cipher;
 using System.Threading.Tasks;
 using Common.Log;
+using Common.Network.Data;
+using Common.Network.Transport;
 
 namespace Common.Network
 {
 
-    public class TCPServer : IDisposable
+    public class NetServer : IDisposable
     {
+        public readonly ITransport<byte[]> transport;
         readonly Aes256Gcm _aes;
 
-        string _ip;
-        int _port;
-        Socket _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-        public TCPServer(string ip, int port, string aesPwd)
+        public NetServer(string aesPwd)
         {
-            _ip = ip;
-            _port = port;
+            transport = new TCPTransport();
             _aes = new Aes256Gcm(aesPwd);
         }
 
-        public void Listen(Action<Exception> excHandler)
+        public void Listen(string ip, int port, Action<Exception> excHandler)
         {
             try
             {
-                _socket.Bind(new IPEndPoint(IPAddress.Parse(_ip), _port));
-                _socket.Listen(1024);
-                Logger.Info("Listening at {0}:{1}", _ip, _port);
+                transport.Start(ip, port);
+                Logger.Info("Listening at {0}:{1}", ip, port);
             }
             catch (Exception ex)
             {
@@ -45,23 +42,23 @@ namespace Common.Network
         /// <param name="msgHandler">called when new message recved</param>
         /// <param name="excHandler">called when any exception throwed</param>
         public void AcceptLoop(
-            Action<TCPClient> connectHandler, Action<TCPClient> disconnectHandler,
-            Action<TCPClient, Message> msgHandler, Action<Socket?, TCPClient?, Exception> excHandler)
+            Action<NetClient> connectHandler, Action<NetClient> disconnectHandler,
+            Action<NetClient, Message> msgHandler, Action<TCPTransport?, NetClient?, Exception> excHandler)
         {
             Logger.Info("Accepting connections...");
             while (true)
             {
-                Socket? clientSocket = null;
-                TCPClient? secureClient = null;
+                TCPTransport? clientTransport = null;
+                NetClient? secureClient = null;
                 try
                 {
-                    clientSocket = _socket.Accept();
-                    secureClient = new(clientSocket, _aes.Copy());
+                    clientTransport = (TCPTransport)transport.Accept();
+                    secureClient = new(clientTransport, _aes.Copy());
                     connectHandler(secureClient);
                 }
                 catch (Exception ex)
                 {
-                    excHandler(clientSocket, secureClient, ex);
+                    excHandler(clientTransport, secureClient, ex);
                     break;
                 }
 
@@ -78,7 +75,7 @@ namespace Common.Network
                     }
                     catch (Exception ex)
                     {
-                        excHandler(clientSocket, secureClient, ex);
+                        excHandler(clientTransport, secureClient, ex);
                     }
                     finally
                     {
@@ -88,7 +85,7 @@ namespace Common.Network
                         }
                         catch (Exception ex)
                         {
-                            excHandler(clientSocket, secureClient, ex);
+                            excHandler(clientTransport, secureClient, ex);
                         }
                     }
                 });
@@ -97,9 +94,9 @@ namespace Common.Network
 
         public void Dispose()
         {
-            _socket.Close();
-            _socket.Dispose();
+            transport.Dispose();
             _aes.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using MessagePack;
 using System.Collections.Generic;
 
-namespace Common.Network
+namespace Common.Network.Data
 {
     public enum MsgType
     {
@@ -32,10 +32,20 @@ namespace Common.Network
             return (T)Params[index];
         }
 
-        //tostring method for debugging
+        // tostring method for debugging
         public override string ToString()
         {
             return $"{Type} {Params}";
+        }
+
+        // explicit cast support
+        public static explicit operator Message(byte[] bytes)
+        {
+            return MessagePackSerializer.Deserialize<Message>(bytes);
+        }
+        public static explicit operator byte[](Message obj)
+        {
+            return MessagePackSerializer.Serialize(obj);
         }
     }
 }

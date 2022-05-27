@@ -1,6 +1,7 @@
 ﻿using Common.Cipher;
 using Common.Log;
 using Common.Network;
+using Common.Network.Data;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -34,16 +35,16 @@ namespace ChatServer
                 Environment.Exit(-1);
             }
 
-            TCPServer tcp = new("0.0.0.0", 12344, "SSCv3_Default_Key");
+            NetServer server = new("SSCv3_Default_Key");
 
-            tcp.Listen((exc) =>
+            server.Listen("0.0.0.0", 12344, (exc) =>
             {
                 Logger.Error("Listen failed ({0})", exc.Message);
                 Environment.Exit(-1);
             });
 
-            tcp.AcceptLoop(
                 (client) => Logger.Info("{0} Connected", client),
+                },
                 (client) =>
                 {
                     Logger.Info("{0} Disconnected", client);
@@ -64,11 +65,11 @@ namespace ChatServer
                 }
             );
 
-            tcp.Dispose();
+            server.Dispose();
             Logger.Info("Server stopped");
         }
 
-        static void MessageHandler(TCPClient client, Message msg)
+        static void MessageHandler(NetClient client, Message msg)
         {
             string logStr = $"{client} {msg.Type} - ";
             var log = (string result) =>
@@ -76,8 +77,8 @@ namespace ChatServer
                 Logger.Info(logStr + result);
             };
 
-            bool nickReady = client.Storage.ContainsKey("nick");
-            string nick = (string)client.Storage.GetValueOrDefault("nick", "");
+            bool nickReady = client.state.ContainsKey("nick");
+            string nick = (string)client.state.GetValueOrDefault("nick", "");
 
             switch (msg.Type)
             {
@@ -108,9 +109,9 @@ namespace ChatServer
                     }
 
                     //setup nickname
-                    client.Storage.Add("nick", pendingNick);
+                    client.state.Add("nick", pendingNick);
                     ClientMgr.Register(pendingNick, client);
-                    client.ReceiveTimeout = 0;
+                    client.transport.ReceiveTimeout = 0;
 
                     //reply
                     client.Send(new(MsgType.NICK, "OK"));

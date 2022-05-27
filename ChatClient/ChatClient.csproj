@@ -9,10 +9,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Include="..\.editorconfig" Link=".editorconfig" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="Jdenticon.Wpf" Version="3.1.2" />
 		<PackageReference Include="MessagePack" Version="2.3.85" />
 		<PackageReference Include="MessagePackAnalyzer" Version="2.3.85" />

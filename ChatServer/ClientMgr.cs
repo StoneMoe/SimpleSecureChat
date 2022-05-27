@@ -1,4 +1,5 @@
 ﻿using Common.Network;
+using Common.Network.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,16 +11,16 @@ namespace ChatServer
 {
     internal class ClientMgr
     {
-        public static Dictionary<string, TCPClient> clientMap = new();
+        public static Dictionary<string, NetClient> clientMap = new();
 
-        public static void Register(string name, TCPClient s)
+        public static void Register(string name, NetClient s)
         {
             clientMap.Add(name, s);
         }
 
-        public static void Unregister(TCPClient client)
+        public static void Unregister(NetClient client)
         {
-            clientMap.Remove((string)client.Storage.GetValueOrDefault("nick", ""));
+            clientMap.Remove((string)client.state.GetValueOrDefault("nick", ""));
         }
 
         public static bool ClientNicknameExisted(string username)
@@ -40,7 +41,7 @@ namespace ChatServer
             {
                 try
                 {
-                    item.Value.Shutdown();
+                    item.Value.Disconnect();
                 }
                 catch
                 {
@@ -64,7 +65,7 @@ namespace ChatServer
         {
             Broadcast(msg, null);
         }
-        public static void Broadcast(Message msg, TCPClient? except)
+        public static void Broadcast(Message msg, NetClient? except)
         {
             foreach (var s in clientMap)
             {

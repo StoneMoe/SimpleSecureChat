@@ -10,12 +10,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Cipher\AES256GCM.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Network\Multicast.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Network\Transport\ITransport.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Network\Transport\TCPTransport.cs" />
     <Compile Include="..\Common\Cipher\ECDH.cs" />
     <Compile Include="..\Common\Cipher\X509.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Log\Logger.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Network\TCPClient.cs" />
+    <Compile Include="..\Common\Network\NetClient.cs" />
     <Compile Include="..\Common\Network\NetUtils.cs" />
-    <Compile Include="..\Common\Network\Message.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Network\TCPServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Network\Data\Message.cs" />
+    <Compile Include="..\Common\Network\NetServer.cs" />
   </ItemGroup>
 </Project>

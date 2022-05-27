@@ -19,6 +19,7 @@ namespace Common.Cipher
             return new Aes256Gcm(m_key);
         }
 
+#pragma warning disable CS8618
         public Aes256Gcm(string password)
         {
             SetPassword(password);
@@ -27,6 +28,7 @@ namespace Common.Cipher
         {
             SetKey(key);
         }
+#pragma warning restore CS8618
 
         public void SetPassword(string password)
         {
