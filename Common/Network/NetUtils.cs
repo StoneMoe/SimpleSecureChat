@@ -11,10 +11,9 @@ namespace Common.Network
         public static IPAddress Resolve(string host)
         {
             if (host == null || host.Length == 0)
-                throw new ArgumentException("Host string is empty", "host");
+                throw new ArgumentException("Host string is empty", nameof(host));
 
-            IPAddress ip;
-            if (!IPAddress.TryParse(host, out ip))
+            if (!IPAddress.TryParse(host, out IPAddress ip))
             {
                 IPHostEntry entry = Dns.GetHostEntry(host);
                 if (entry.AddressList.Length > 0)
@@ -22,7 +21,7 @@ namespace Common.Network
             }
 
             if (ip == null)
-                throw new ArgumentException("Host not found", "host");
+                throw new ArgumentException("Host not found", nameof(host));
 
             return ip;
         }
@@ -31,14 +30,13 @@ namespace Common.Network
         public static int ResolvePort(string port)
         {
             if (port == null || port.Length == 0)
-                throw new ArgumentException("Port string is empty", "port");
+                throw new ArgumentException("Port string is empty", nameof(port));
 
-            int port_num;
-            if (!int.TryParse(port, out port_num))
-                throw new ArgumentException("Port is not a number", "port");
+            if (!int.TryParse(port, out int port_num))
+                throw new ArgumentException("Port is not a number", nameof(port));
 
             if (port_num < IPEndPoint.MinPort || port_num > IPEndPoint.MaxPort)
-                throw new ArgumentException("Port is out of range", "port");
+                throw new ArgumentException("Port is out of range", nameof(port));
 
             return port_num;
         }

@@ -10,9 +10,11 @@ namespace ChatServer
 {
     internal class Program
     {
+#pragma warning disable CS8618
         static X509Certificate2 serverCert;
+#pragma warning restore CS8618
 
-        static void Main(string[] args)
+        static void Main()
         {
             try
             {
@@ -22,17 +24,23 @@ namespace ChatServer
             {
                 Logger.Error("Failed to load certificate, generating self-signed certificate...");
                 X509.GenerateDefault();
-                Environment.Exit(0);
+                Environment.Exit(1);
             }
 
-            if (serverCert.GetECDsaPrivateKey() != null)
+            if (serverCert == null)
             {
-                Logger.Info($"Loaded X.509 {serverCert.GetCertHashString()}");
+                Logger.Error("Failed to load certificate");
+                Environment.Exit(1);
+            }
+
+            if (serverCert.GetECDsaPrivateKey() == null)
+            {
+                Logger.Error("Invalid ECDSA PKCS#12 Certificate");
+                Environment.Exit(1);
             }
             else
             {
-                Logger.Error("Invalid ECDSA PKCS#12 Certificate");
-                Environment.Exit(-1);
+                Logger.Info($"Loaded X.509 {serverCert.GetCertHashString()}");
             }
 
             NetServer server = new("SSCv3_Default_Key");
@@ -40,10 +48,13 @@ namespace ChatServer
             server.Listen("0.0.0.0", 12344, (exc) =>
             {
                 Logger.Error("Listen failed ({0})", exc.Message);
-                Environment.Exit(-1);
+                Environment.Exit(1);
             });
 
-                (client) => Logger.Info("{0} Connected", client),
+            server.AcceptLoop(
+                (client) => {
+                    Logger.Info("{0} Connected", client);
+                    client.transport.ReceiveTimeout = 30000;
                 },
                 (client) =>
                 {
@@ -185,7 +196,7 @@ namespace ChatServer
                     client.Send(new(MsgType.HELLO, serverCert.Export(X509ContentType.Cert)));
                     break;
                 case MsgType.KEY:
-                    ECDH ecdh = new ECDH(serverCert);
+                    ECDH ecdh = new(serverCert);
                     byte[] keyData = msg.GetParam<byte[]>(0);
                     byte[]? newKey = ecdh.DeriveKey(keyData);
                     client.UpdateAesKey(newKey);

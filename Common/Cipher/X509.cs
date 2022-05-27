@@ -11,8 +11,8 @@ namespace Common.Cipher
     /// </summary>
     public class X509
     {
-        static string DEFAULT_PFX_FILENAME = "private.pfx";
-        static string DEFAULT_REQ = "CN=SimpleSecureChatServer";
+        static readonly string DEFAULT_PFX_FILENAME = "private.pfx";
+        static readonly string DEFAULT_REQ = "CN=SimpleSecureChatServer";
 
         private static string? GetCurrentDirectory()
         {
