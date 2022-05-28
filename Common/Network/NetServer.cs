@@ -43,16 +43,16 @@ namespace Common.Network
         /// <param name="excHandler">called when any exception throwed</param>
         public void AcceptLoop(
             Action<NetClient> connectHandler, Action<NetClient> disconnectHandler,
-            Action<NetClient, Message> msgHandler, Action<TCPTransport?, NetClient?, Exception> excHandler)
+            Action<NetClient, Message> msgHandler, Action<ITransport<byte[]>?, NetClient?, Exception> excHandler)
         {
             Logger.Info("Accepting connections...");
             while (true)
             {
-                TCPTransport? clientTransport = null;
+                ITransport<byte[]>? clientTransport = null;
                 NetClient? secureClient = null;
                 try
                 {
-                    clientTransport = (TCPTransport)transport.Accept();
+                    clientTransport = transport.Accept();
                     secureClient = new(clientTransport, _aes.Copy());
                     connectHandler(secureClient);
                 }

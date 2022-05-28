@@ -27,7 +27,7 @@ namespace Common.Network
             _aes = new Aes256Gcm(aesPwd);
         }
 
-        public NetClient(TCPTransport clientSocket, Aes256Gcm aesInstance)
+        public NetClient(ITransport<byte[]> clientSocket, Aes256Gcm aesInstance)
         {
             transport = clientSocket;
             _aes = aesInstance;
